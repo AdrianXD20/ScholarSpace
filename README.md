@@ -35,7 +35,7 @@ npm -v
 2. Clona el repositorio (sustituye la URL por la de tu equipo):
 
    ```bash
-   git clone https://github.com/TU-ORGANIZACION/ScholarSpace.git
+   git clone https://github.com/AdrianXD20/ScholarSpace.git
    ```
 
 3. Entra en la carpeta del proyecto:
