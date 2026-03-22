@@ -1,16 +1,37 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { FormEvent } from 'react'
-import { User, Mail, Building, GraduationCap, FileText, Trophy, Calendar, Save } from 'lucide-react'
-import Card, { CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
+import {
+  User,
+  Mail,
+  Building,
+  GraduationCap,
+  FileText,
+  Trophy,
+  Calendar,
+  Save,
+  Users,
+} from 'lucide-react'
+import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { useAuth } from '../../hooks/useAuth'
 import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
+import { clasesService } from '../../services/clases.service'
 import { getInitials, formatDate, cn } from '../../utils/helpers'
+
+const ROLE_LABEL = {
+  student: 'Estudiante',
+  teacher: 'Docente',
+  admin: 'Administrador',
+} as const
 
 export default function Profile() {
   const { user, updateProfile } = useAuth()
+  const [joinCodigo, setJoinCodigo] = useState('')
+  const [joinMsg, setJoinMsg] = useState('')
+  const [joinErr, setJoinErr] = useState('')
+  const [isJoining, setIsJoining] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState({
@@ -22,6 +43,31 @@ export default function Profile() {
   })
 
   const [stats, setStats] = useState({ notes: 0, achievements: 0, activities: 0 })
+
+  const clasesInscritas = useMemo(() => {
+    if (!user?.id || user.role !== 'student') return []
+    return clasesService.getClasesInscritasEstudiante(user.id)
+  }, [user?.id, user?.role, user?.claseIds])
+
+  const handleUnirseClase = async (e: FormEvent) => {
+    e.preventDefault()
+    setJoinMsg('')
+    setJoinErr('')
+    if (!user?.id || !joinCodigo.trim()) {
+      setJoinErr('Escribe el código que te dio tu docente.')
+      return
+    }
+    setIsJoining(true)
+    const r = clasesService.joinClaseByCodigo(user.id, joinCodigo.trim())
+    setIsJoining(false)
+    if (r.ok && r.user) {
+      updateProfile({ claseIds: r.user.claseIds })
+      setJoinCodigo('')
+      setJoinMsg('Te uniste a la clase correctamente.')
+    } else {
+      setJoinErr(r.error ?? 'No se pudo unir a la clase.')
+    }
+  }
 
   useEffect(() => {
     if (user?.id) {
@@ -83,6 +129,11 @@ export default function Profile() {
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-2xl font-bold text-foreground">{user?.name}</h2>
               <p className="text-muted-foreground">{user?.email}</p>
+              {user?.role && (
+                <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-md bg-primary/10 text-primary">
+                  {ROLE_LABEL[user.role]}
+                </span>
+              )}
               {(user?.institution || user?.career) && (
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2">
                   {user?.institution && (
@@ -124,6 +175,49 @@ export default function Profile() {
           </Card>
         ))}
       </div>
+
+      {user?.role === 'student' && (
+        <Card variant="bordered">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <CardTitle>Mis clases</CardTitle>
+            </div>
+            <CardDescription>
+              Solo verás a tus compañeros en el contexto de la app cuando el docente use la misma
+              clase. Introduce el código de invitación.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {clasesInscritas.length > 0 && (
+              <ul className="text-sm space-y-2">
+                {clasesInscritas.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex justify-between items-center rounded-lg border border-border px-3 py-2"
+                  >
+                    <span className="font-medium text-foreground">{c.nombre}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{c.codigoInvitacion}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form onSubmit={handleUnirseClase} className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Código de clase (ej. A1B2C3)"
+                value={joinCodigo}
+                onChange={(e) => setJoinCodigo(e.target.value.toUpperCase())}
+                className="flex-1"
+              />
+              <Button type="submit" isLoading={isJoining} variant="outline">
+                Unirme
+              </Button>
+            </form>
+            {joinErr && <p className="text-sm text-destructive">{joinErr}</p>}
+            {joinMsg && <p className="text-sm text-primary">{joinMsg}</p>}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Profile */}
       <Card variant="bordered">

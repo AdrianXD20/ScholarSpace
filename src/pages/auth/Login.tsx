@@ -1,33 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { BookOpen, Mail, Lock } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import { useAuth } from '../../hooks/useAuth'
+import { defaultHomePath } from '../../routes/guards'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
+
+  useEffect(() => {
+    const st = location.state as { resetOk?: boolean } | null
+    if (st?.resetOk) {
+      setInfo('Contraseña actualizada. Inicia sesión con tu nueva clave.')
+    }
+  }, [location.state])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
 
     if (!email || !password) {
       setError('Por favor completa todos los campos')
       return
     }
 
-    const success = await login({ email, password })
-    if (success) {
-      navigate('/dashboard')
+    const result = await login({ email, password })
+    if (result.ok) {
+      navigate(defaultHomePath(result.user?.role))
     } else {
-      setError('Credenciales incorrectas. Verifica tu email y contraseña.')
+      setError(result.error ?? 'Credenciales incorrectas. Verifica tu email y contraseña.')
     }
   }
 
@@ -49,6 +60,9 @@ export default function Login() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {info && (
+                <div className="p-3 rounded-lg bg-primary/10 text-foreground text-sm">{info}</div>
+              )}
               {error && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
                   {error}
@@ -82,6 +96,12 @@ export default function Login() {
               <Button type="submit" isLoading={isLoading} className="w-full mt-2">
                 Iniciar Sesion
               </Button>
+
+              <p className="text-center text-sm">
+                <Link to="/forgot-password" className="text-primary hover:underline font-medium">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </p>
 
               <p className="text-center text-sm text-muted-foreground">
                 ¿No tienes cuenta?{' '}

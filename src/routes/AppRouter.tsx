@@ -1,60 +1,39 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import Loader from '../components/common/Loader'
+import {
+  ProtectedRoute,
+  PublicRoute,
+  PermissionRoute,
+  RoleRoute,
+  StudentDashboardShell,
+} from './guards'
 
 // Auth pages
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
+import ForgotPassword from '../pages/auth/ForgotPassword'
+import ResetPassword from '../pages/auth/ResetPassword'
+import Unauthorized from '../pages/Unauthorized'
 
-// Dashboard pages
+// Dashboard (estudiante / admin)
 import DashboardLayout from '../components/layout/DashboardLayout'
 import Dashboard from '../pages/dashboard/Dashboard'
 import Notes from '../pages/dashboard/Notes'
 import Achievements from '../pages/dashboard/Achievements'
 import Activities from '../pages/dashboard/Activities'
 import Profile from '../pages/dashboard/Profile'
+import Admin from '../pages/dashboard/Admin'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader size="lg" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  return <>{children}</>
-}
-
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader size="lg" />
-      </div>
-    )
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  return <>{children}</>
-}
+// Vista docente (carpeta dedicada)
+import ProfesorLayout from '../pages/profesor/ProfesorLayout'
+import PanelProfesor from '../pages/profesor/PanelProfesor'
+import MisClases from '../pages/profesor/MisClases'
+import DetalleClase from '../pages/profesor/DetalleClase'
+import PortafolioEstudiante from '../pages/profesor/PortafolioEstudiante'
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
         <Route
           path="/login"
           element={
@@ -71,13 +50,30 @@ export default function AppRouter() {
             </PublicRoute>
           }
         />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
 
-        {/* Protected routes */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <StudentDashboardShell>
+                <DashboardLayout />
+              </StudentDashboardShell>
             </ProtectedRoute>
           }
         >
@@ -86,9 +82,44 @@ export default function AppRouter() {
           <Route path="achievements" element={<Achievements />} />
           <Route path="activities" element={<Activities />} />
           <Route path="profile" element={<Profile />} />
+          <Route
+            path="admin"
+            element={
+              <PermissionRoute permission="admin:panel">
+                <Admin />
+              </PermissionRoute>
+            }
+          />
         </Route>
 
-        {/* Default redirect */}
+        <Route
+          path="/profesor"
+          element={
+            <ProtectedRoute>
+              <RoleRoute roles={['teacher']}>
+                <ProfesorLayout />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<PanelProfesor />} />
+          <Route path="clases" element={<MisClases />} />
+          <Route path="clases/:claseId" element={<DetalleClase />} />
+          <Route
+            path="clases/:claseId/estudiantes/:estudianteId"
+            element={<PortafolioEstudiante />}
+          />
+        </Route>
+
+        <Route
+          path="/unauthorized"
+          element={
+            <ProtectedRoute>
+              <Unauthorized />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

@@ -1,16 +1,30 @@
-import { createContext, useState, useEffect } from 'react'
+import { createContext, useState, useEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
-import type { User, LoginCredentials, RegisterData } from '../types/user.types'
-import { generateId } from '../utils/helpers'
+import type { User, LoginCredentials, RegisterData, Permission } from '../types/user.types'
+import { resolvePermissions, hasPermission as checkPermission } from '../constants/permissions'
+import { authService } from '../services/auth.service'
+import {
+  clearLoginAttempts,
+  isLoginBlocked,
+  recordFailedLogin,
+} from '../services/security/loginRateLimit'
+
+interface LoginResult {
+  ok: boolean
+  error?: string
+  user?: User
+}
 
 interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (credentials: LoginCredentials) => Promise<boolean>
-  register: (data: RegisterData) => Promise<boolean>
+  login: (credentials: LoginCredentials) => Promise<LoginResult>
+  register: (data: RegisterData) => Promise<LoginResult>
   logout: () => void
   updateProfile: (data: Partial<User>) => void
+  /** Comprueba un permiso concreto (API o rol por defecto) */
+  can: (permission: Permission) => boolean
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null)
@@ -19,96 +33,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-    setIsLoading(false)
+  const hydrate = useCallback(() => {
+    const stored = authService.getStoredUser()
+    setUser(stored)
   }, [])
 
-  const login = async (credentials: LoginCredentials): Promise<boolean> => {
+  useEffect(() => {
+    hydrate()
+    setIsLoading(false)
+  }, [hydrate])
+
+  useEffect(() => {
+    const onExpire = () => {
+      setUser(null)
+      localStorage.removeItem('user')
+    }
+    window.addEventListener('auth:session-expired', onExpire)
+    return () => window.removeEventListener('auth:session-expired', onExpire)
+  }, [])
+
+  const can = useCallback(
+    (permission: Permission) => checkPermission(user, permission),
+    [user]
+  )
+
+  const login = async (credentials: LoginCredentials): Promise<LoginResult> => {
+    if (isLoginBlocked(credentials.email)) {
+      return {
+        ok: false,
+        error:
+          'Demasiados intentos. Espera unos minutos o restablece tu contraseña.',
+      }
+    }
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const foundUser = users.find(
-        (u: User & { password: string }) =>
-          u.email === credentials.email && u.password === credentials.password
-      )
-
-      if (foundUser) {
-        const { password: _, ...userWithoutPassword } = foundUser
-        setUser(userWithoutPassword)
-        localStorage.setItem('user', JSON.stringify(userWithoutPassword))
-        setIsLoading(false)
-        return true
+      const result = await authService.login(credentials)
+      if (result.ok) {
+        clearLoginAttempts(credentials.email)
+        setUser(result.user)
+        return { ok: true, user: result.user }
       }
+      recordFailedLogin(credentials.email)
+      return { ok: false, error: result.error }
+    } finally {
       setIsLoading(false)
-      return false
-    } catch {
-      setIsLoading(false)
-      return false
     }
   }
 
-  const register = async (data: RegisterData): Promise<boolean> => {
+  const register = async (data: RegisterData): Promise<LoginResult> => {
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const existingUser = users.find((u: User) => u.email === data.email)
-
-      if (existingUser) {
-        setIsLoading(false)
-        return false
+      const result = await authService.register(data)
+      if (result.ok) {
+        setUser(result.user)
+        return { ok: true, user: result.user }
       }
-
-      const newUser: User & { password: string } = {
-        id: generateId(),
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        institution: data.institution,
-        career: data.career,
-        createdAt: new Date().toISOString(),
-      }
-
-      users.push(newUser)
-      localStorage.setItem('users', JSON.stringify(users))
-
-      const { password: _, ...userWithoutPassword } = newUser
-      setUser(userWithoutPassword)
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword))
+      return { ok: false, error: result.error }
+    } finally {
       setIsLoading(false)
-      return true
-    } catch {
-      setIsLoading(false)
-      return false
     }
   }
 
   const logout = () => {
+    authService.logout()
     setUser(null)
-    localStorage.removeItem('user')
   }
 
   const updateProfile = (data: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...data }
+      const merged = { ...user, ...data }
+      const updatedUser: User = {
+        ...merged,
+        permissions: resolvePermissions(merged),
+      }
       setUser(updatedUser)
       localStorage.setItem('user', JSON.stringify(updatedUser))
 
-      // Update in users array
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const userIndex = users.findIndex((u: User) => u.id === user.id)
-      if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...data }
-        localStorage.setItem('users', JSON.stringify(users))
+      const raw = localStorage.getItem('users')
+      if (raw) {
+        try {
+          const users = JSON.parse(raw) as Array<{ id: string } & Record<string, unknown>>
+          const idx = users.findIndex((u) => u.id === user.id)
+          if (idx !== -1) {
+            users[idx] = { ...users[idx], ...data }
+            localStorage.setItem('users', JSON.stringify(users))
+          }
+        } catch {
+          /* ignore */
+        }
       }
     }
   }
@@ -123,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateProfile,
+        can,
       }}
     >
       {children}
