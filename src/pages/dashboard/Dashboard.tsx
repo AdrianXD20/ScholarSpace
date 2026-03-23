@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Trophy, Calendar, TrendingUp, Plus, ArrowRight } from 'lucide-react'
+import { Plus, ArrowRight } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { useAuth } from '../../hooks/useAuth'
@@ -9,6 +9,12 @@ import { userService } from '../../services/user.service'
 import type { Note } from '../../types/note.types'
 import type { Achievement, Activity } from '../../types/achievement.types'
 import { formatDate, truncateText } from '../../utils/helpers'
+import {
+  iconApuntes,
+  iconLogros,
+  iconActividades,
+  iconProgreso,
+} from '../../assets/Icons'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -25,10 +31,15 @@ export default function Dashboard() {
   }, [user?.id])
 
   const stats = [
-    { label: 'Apuntes', value: notes.length, icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: 'Logros', value: achievements.length, icon: Trophy, color: 'text-accent', bg: 'bg-accent/10' },
-    { label: 'Actividades', value: activities.length, icon: Calendar, color: 'text-green-400', bg: 'bg-green-400/10' },
-    { label: 'En progreso', value: activities.filter(a => a.status === 'in-progress').length, icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+    { label: 'Apuntes', value: notes.length, src: iconApuntes, alt: 'Apuntes' },
+    { label: 'Logros', value: achievements.length, src: iconLogros, alt: 'Logros' },
+    { label: 'Actividades', value: activities.length, src: iconActividades, alt: 'Actividades' },
+    {
+      label: 'En progreso',
+      value: activities.filter((a) => a.status === 'in-progress').length,
+      src: iconProgreso,
+      alt: 'Progreso',
+    },
   ]
 
   const recentNotes = notes.slice(-3).reverse()
@@ -62,9 +73,7 @@ export default function Dashboard() {
           <Card key={stat.label} variant="bordered">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
+                <img src={stat.src} alt="" className="w-8 h-8 object-contain shrink-0" aria-hidden />
                 <div>
                   <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -100,7 +109,12 @@ export default function Dashboard() {
               </ul>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <img
+                  src={iconApuntes}
+                  alt=""
+                  className="w-14 h-14 mx-auto mb-3 opacity-50 object-contain"
+                  aria-hidden
+                />
                 <p>No tienes apuntes aun</p>
                 <Link to="/dashboard/notes">
                   <Button variant="ghost" size="sm" className="mt-2">
@@ -126,9 +140,12 @@ export default function Dashboard() {
                 {recentAchievements.map((achievement) => (
                   <li key={achievement.id} className="p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
-                        <Trophy className="w-4 h-4 text-accent" />
-                      </div>
+                      <img
+                        src={iconLogros}
+                        alt=""
+                        className="w-7 h-7 object-contain flex-shrink-0 mt-0.5"
+                        aria-hidden
+                      />
                       <div>
                         <h4 className="font-medium text-foreground">{achievement.title}</h4>
                         <p className="text-sm text-muted-foreground mt-0.5">
@@ -142,7 +159,12 @@ export default function Dashboard() {
               </ul>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <img
+                  src={iconLogros}
+                  alt=""
+                  className="w-14 h-14 mx-auto mb-3 opacity-50 object-contain"
+                  aria-hidden
+                />
                 <p>No tienes logros registrados</p>
                 <Link to="/dashboard/achievements">
                   <Button variant="ghost" size="sm" className="mt-2">

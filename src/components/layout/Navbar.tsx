@@ -1,6 +1,7 @@
-import { Menu, Bell } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { getInitials } from '../../utils/helpers'
+import UserAvatar from '../common/UserAvatar'
+import { iconBuscar, iconNotificacion } from '../../assets/Icons'
 
 interface NavbarProps {
   onMenuClick: () => void
@@ -24,20 +25,25 @@ export default function Navbar({ onMenuClick, title = 'Dashboard' }: NavbarProps
           <h1 className="text-lg font-semibold text-foreground">{title}</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button 
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            className="p-2 rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Buscar"
+          >
+            <img src={iconBuscar} alt="" className="w-6 h-6 object-contain" aria-hidden />
+          </button>
+
+          <button
+            type="button"
             className="p-2 rounded-lg hover:bg-secondary transition-colors relative"
             aria-label="Notificaciones"
           >
-            <Bell className="w-5 h-5 text-muted-foreground" />
+            <img src={iconNotificacion} alt="" className="w-6 h-6 object-contain" aria-hidden />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
           </button>
 
-          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
-            <span className="text-sm font-medium text-primary">
-              {user?.name ? getInitials(user.name) : 'U'}
-            </span>
-          </div>
+          <UserAvatar name={user?.name} avatarUrl={user?.avatar} size="nav" />
         </div>
       </div>
     </header>

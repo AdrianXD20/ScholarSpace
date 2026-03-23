@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { Send } from 'lucide-react'
 import {
-  Briefcase,
-  FolderKanban,
-  Trophy,
-  StickyNote,
-  Send,
-  Sparkles,
-} from 'lucide-react'
+  iconLogros,
+  iconActividades,
+  iconPerfil,
+  iconApuntes,
+  iconNotificacion,
+} from '../../assets/Icons'
 import { useAuth } from '../../hooks/useAuth'
 import { clasesService } from '../../services/clases.service'
 import { notesService } from '../../services/notes.service'
@@ -100,7 +100,7 @@ export default function PortafolioEstudiante() {
       <Card variant="bordered">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <img src={iconNotificacion} alt="" className="w-6 h-6 object-contain" aria-hidden />
             <CardTitle className="text-lg">Motivación</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -137,7 +137,7 @@ export default function PortafolioEstudiante() {
 
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Briefcase className="w-5 h-5 text-primary" />
+          <img src={iconLogros} alt="" className="w-6 h-6 object-contain" aria-hidden />
           <h2 className="text-lg font-semibold text-foreground">Ámbito profesional (logros)</h2>
         </div>
         {logrosProfesional.length === 0 ? (
@@ -161,7 +161,7 @@ export default function PortafolioEstudiante() {
 
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <FolderKanban className="w-5 h-5 text-primary" />
+          <img src={iconActividades} alt="" className="w-6 h-6 object-contain" aria-hidden />
           <h2 className="text-lg font-semibold text-foreground">Proyectos (actividades)</h2>
         </div>
         {proyectos.length === 0 ? (
@@ -187,7 +187,7 @@ export default function PortafolioEstudiante() {
 
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Trophy className="w-5 h-5 text-primary" />
+          <img src={iconPerfil} alt="" className="w-6 h-6 object-contain" aria-hidden />
           <h2 className="text-lg font-semibold text-foreground">Experiencias</h2>
         </div>
         {experiencias.length === 0 ? (
@@ -211,7 +211,7 @@ export default function PortafolioEstudiante() {
 
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <StickyNote className="w-5 h-5 text-primary" />
+          <img src={iconApuntes} alt="" className="w-6 h-6 object-contain" aria-hidden />
           <h2 className="text-lg font-semibold text-foreground">Apuntes (vista previa)</h2>
         </div>
         {notas.length === 0 ? (

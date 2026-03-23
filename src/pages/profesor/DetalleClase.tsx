@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { UserCircle, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import UserAvatar from '../../components/common/UserAvatar'
 import { useAuth } from '../../hooks/useAuth'
 import { clasesService } from '../../services/clases.service'
 import { userService } from '../../services/user.service'
@@ -64,9 +65,7 @@ export default function DetalleClase() {
                   <Card variant="bordered" className="hover:bg-secondary/40 transition-colors">
                     <CardContent className="p-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                          <UserCircle className="w-6 h-6 text-primary" />
-                        </div>
+                        <UserAvatar name={u.name} avatarUrl={u.avatar} size="md" className="shrink-0" />
                         <div className="min-w-0">
                           <p className="font-medium text-foreground truncate">{u.name}</p>
                           <p className="text-xs text-muted-foreground truncate">{u.email}</p>

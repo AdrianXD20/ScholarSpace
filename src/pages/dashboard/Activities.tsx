@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
-import { Plus, Calendar, CheckCircle, Clock, Target, Trash2 } from 'lucide-react'
+import { Plus, CheckCircle, Clock, Target, Trash2 } from 'lucide-react'
+import { iconActividades } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -141,8 +142,7 @@ export default function Activities() {
                               {statusInfo.label}
                             </span>
                             <span className="text-xs text-muted-foreground capitalize">{activity.type}</span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
+                            <span className="text-xs text-muted-foreground">
                               {formatDate(activity.date)}
                             </span>
                           </div>
@@ -184,9 +184,12 @@ export default function Activities() {
       ) : (
         <Card variant="bordered">
           <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <Calendar className="w-8 h-8 text-primary" />
-            </div>
+            <img
+              src={iconActividades}
+              alt=""
+              className="w-16 h-16 mx-auto mb-4 object-contain"
+              aria-hidden
+            />
             <h3 className="text-lg font-medium text-foreground mb-2">
               {filterStatus ? 'No hay actividades con este estado' : 'Registra tus actividades'}
             </h3>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
-import { Plus, Trophy, Award, Star, Briefcase, Trash2 } from 'lucide-react'
+import { Plus, Award, Star, Briefcase, Trash2, Trophy } from 'lucide-react'
+import { iconLogros } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -144,9 +145,12 @@ export default function Achievements() {
       ) : (
         <Card variant="bordered">
           <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
-              <Trophy className="w-8 h-8 text-accent" />
-            </div>
+            <img
+              src={iconLogros}
+              alt=""
+              className="w-16 h-16 mx-auto mb-4 object-contain"
+              aria-hidden
+            />
             <h3 className="text-lg font-medium text-foreground mb-2">
               {selectedCategory ? 'No hay logros en esta categoria' : 'Registra tus logros'}
             </h3>

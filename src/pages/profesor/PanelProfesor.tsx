@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, BookOpen, Trophy, Sparkles } from 'lucide-react'
+import { iconDashboard, iconPerfil, iconLogros, iconNotificacion } from '../../assets/Icons'
 import { useAuth } from '../../hooks/useAuth'
 import { clasesService } from '../../services/clases.service'
 import { userService } from '../../services/user.service'
@@ -91,9 +91,7 @@ export default function PanelProfesor() {
       <div className="grid sm:grid-cols-3 gap-4">
         <Card variant="bordered">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-primary" />
-            </div>
+            <img src={iconDashboard} alt="" className="w-10 h-10 object-contain shrink-0" aria-hidden />
             <div>
               <p className="text-2xl font-bold text-foreground">{clases.length}</p>
               <p className="text-sm text-muted-foreground">Clases</p>
@@ -102,9 +100,7 @@ export default function PanelProfesor() {
         </Card>
         <Card variant="bordered">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
+            <img src={iconPerfil} alt="" className="w-10 h-10 object-contain shrink-0" aria-hidden />
             <div>
               <p className="text-2xl font-bold text-foreground">{estudianteIds.length}</p>
               <p className="text-sm text-muted-foreground">Estudiantes en tus clases</p>
@@ -113,9 +109,7 @@ export default function PanelProfesor() {
         </Card>
         <Card variant="bordered">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-primary" />
-            </div>
+            <img src={iconLogros} alt="" className="w-10 h-10 object-contain shrink-0" aria-hidden />
             <div>
               <p className="text-2xl font-bold text-foreground">
                 {Object.values(logrosMes).reduce((a, b) => a + b, 0)}
@@ -134,7 +128,7 @@ export default function PanelProfesor() {
         />
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <img src={iconNotificacion} alt="" className="w-6 h-6 object-contain" aria-hidden />
             <h3 className="text-sm font-semibold text-foreground">Motivación enviada</h3>
           </div>
           <p className="text-xs text-muted-foreground mb-4">

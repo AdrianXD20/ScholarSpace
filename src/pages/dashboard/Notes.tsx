@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
-import { Plus, Search, Edit, Trash2, X, Tag } from 'lucide-react'
+import { Plus, Edit, Trash2, X, Tag } from 'lucide-react'
+import { iconBuscar, iconApuntes } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -99,7 +100,12 @@ export default function Notes() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <img
+            src={iconBuscar}
+            alt=""
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 object-contain pointer-events-none"
+            aria-hidden
+          />
           <Input
             placeholder="Buscar apuntes..."
             value={searchTerm}
@@ -168,9 +174,12 @@ export default function Notes() {
       ) : (
         <Card variant="bordered">
           <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <Plus className="w-8 h-8 text-primary" />
-            </div>
+            <img
+              src={iconApuntes}
+              alt=""
+              className="w-16 h-16 mx-auto mb-4 object-contain"
+              aria-hidden
+            />
             <h3 className="text-lg font-medium text-foreground mb-2">
               {searchTerm ? 'No se encontraron resultados' : 'Comienza a crear apuntes'}
             </h3>

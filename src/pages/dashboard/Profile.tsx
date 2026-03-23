@@ -1,16 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { FormEvent } from 'react'
-import {
-  User,
-  Mail,
-  Building,
-  GraduationCap,
-  FileText,
-  Trophy,
-  Calendar,
-  Save,
-  Users,
-} from 'lucide-react'
+import { User, Mail, Building, GraduationCap, Save, Users } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -18,7 +8,9 @@ import { useAuth } from '../../hooks/useAuth'
 import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
 import { clasesService } from '../../services/clases.service'
-import { getInitials, formatDate, cn } from '../../utils/helpers'
+import UserAvatar from '../../components/common/UserAvatar'
+import { formatDate, cn } from '../../utils/helpers'
+import { iconApuntes, iconLogros, iconActividades } from '../../assets/Icons'
 
 const ROLE_LABEL = {
   student: 'Estudiante',
@@ -110,9 +102,9 @@ export default function Profile() {
   }
 
   const statCards = [
-    { label: 'Apuntes', value: stats.notes, icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: 'Logros', value: stats.achievements, icon: Trophy, color: 'text-accent', bg: 'bg-accent/10' },
-    { label: 'Actividades', value: stats.activities, icon: Calendar, color: 'text-green-400', bg: 'bg-green-400/10' },
+    { label: 'Apuntes', value: stats.notes, src: iconApuntes, alt: 'Apuntes' },
+    { label: 'Logros', value: stats.achievements, src: iconLogros, alt: 'Logros' },
+    { label: 'Actividades', value: stats.activities, src: iconActividades, alt: 'Actividades' },
   ]
 
   return (
@@ -121,11 +113,7 @@ export default function Profile() {
       <Card variant="bordered">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary">
-                {user?.name ? getInitials(user.name) : 'U'}
-              </span>
-            </div>
+            <UserAvatar name={user?.name} avatarUrl={user?.avatar} size="xl" />
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-2xl font-bold text-foreground">{user?.name}</h2>
               <p className="text-muted-foreground">{user?.email}</p>
@@ -166,9 +154,12 @@ export default function Profile() {
         {statCards.map((stat) => (
           <Card key={stat.label} variant="bordered">
             <CardContent className="p-4 text-center">
-              <div className={cn('w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center', stat.bg)}>
-                <stat.icon className={cn('w-5 h-5', stat.color)} />
-              </div>
+              <img
+                src={stat.src}
+                alt=""
+                className="w-8 h-8 mx-auto mb-2 object-contain"
+                aria-hidden
+              />
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
             </CardContent>
