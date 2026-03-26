@@ -8,10 +8,20 @@ import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { userService } from '../../services/user.service'
-import { actividadesService } from '../../services/actividades.service'
-import type { ActividadApi } from '../../services/actividades.service'
 import type { Activity } from '../../types/achievement.types'
 import { formatDate, cn } from '../../utils/helpers'
+
+// Definir tipos localmente ya que no podemos importar de actividades.service.ts
+interface ActividadApi {
+  id: number
+  titulo: string
+  descripcion: string
+  fecha: string
+  estado: string
+  usuario_id: number
+  proyecto_id?: number
+  clase_id?: number
+}
 
 const typeOptions = [
   { value: 'event', label: 'Evento' },
@@ -32,6 +42,9 @@ interface ActividadLocal extends Activity {
   proyectoId?: number
   claseId?: number
 }
+
+// URL base de la API - ajusta según tu configuración
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 export default function Activities() {
   const { user } = useAuth()
@@ -56,10 +69,15 @@ export default function Activities() {
   const loadActivities = async () => {
     if (!user?.id) return
     setIsLoadingApi(true)
-    const result = await actividadesService.getActividades()
-    if (result.ok && result.data) {
-      const userActivities = result.data.filter((a) => a.usuario_id === Number(user?.id))
-      setActivitiesApi(userActivities)
+    try {
+      const response = await fetch(`${API_BASE_URL}/actividades`)
+      const data = await response.json()
+      if (response.ok) {
+        const userActivities = data.filter((a: ActividadApi) => a.usuario_id === Number(user?.id))
+        setActivitiesApi(userActivities)
+      }
+    } catch (error) {
+      console.error('Error loading activities:', error)
     }
     setIsLoadingApi(false)
   }
@@ -78,7 +96,7 @@ export default function Activities() {
 
   // Combine APIs and local activities, filter by status
   const allActivities = [
-    ...activitiesApi.map((a) => ({
+    ...activitiesApi.map((a: ActividadApi) => ({
       id: `api-${a.id}`,
       apiId: a.id,
       title: a.titulo,
@@ -113,25 +131,40 @@ export default function Activities() {
       clase_id: formData.claseId ? Number(formData.claseId) : undefined,
     }
 
-    if (editingActivity?.apiId) {
-      const result = await actividadesService.updateActividad(editingActivity.apiId, payload)
-      setIsSavingActivity(false)
-      if (result.ok) {
-        await loadActivities()
-        setEditingActivity(null)
-        setIsModalOpen(false)
+    try {
+      if (editingActivity?.apiId) {
+        const response = await fetch(`${API_BASE_URL}/actividades/${editingActivity.apiId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (response.ok) {
+          await loadActivities()
+          setEditingActivity(null)
+          setIsModalOpen(false)
+        } else {
+          const error = await response.json()
+          alert(error.error ?? 'No se pudo actualizar la actividad')
+        }
       } else {
-        alert(result.error ?? 'No se pudo actualizar la actividad')
+        const response = await fetch(`${API_BASE_URL}/actividades`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (response.ok) {
+          await loadActivities()
+          setIsModalOpen(false)
+        } else {
+          const error = await response.json()
+          alert(error.error ?? 'No se pudo crear la actividad')
+        }
       }
-    } else {
-      const result = await actividadesService.createActividad(payload as Omit<ActividadApi, 'id'>)
+    } catch (error) {
+      console.error('Error saving activity:', error)
+      alert('Error de conexión')
+    } finally {
       setIsSavingActivity(false)
-      if (result.ok) {
-        await loadActivities()
-        setIsModalOpen(false)
-      } else {
-        alert(result.error ?? 'No se pudo crear la actividad')
-      }
     }
 
     setFormData({ title: '', description: '', date: '', type: 'project', status: 'Planeado', proyectoId: '', claseId: '' })
@@ -142,11 +175,19 @@ export default function Activities() {
 
     if (id.startsWith('api-')) {
       const apiId = Number(id.replace('api-', ''))
-      const result = await actividadesService.updateActividad(apiId, { estado: newStatus })
-      if (result.ok) {
-        setActivitiesApi((prev) =>
-          prev.map((a) => (a.id === apiId ? { ...a, estado: newStatus } : a))
-        )
+      try {
+        const response = await fetch(`${API_BASE_URL}/actividades/${apiId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: newStatus }),
+        })
+        if (response.ok) {
+          setActivitiesApi((prev) =>
+            prev.map((a) => (a.id === apiId ? { ...a, estado: newStatus } : a))
+          )
+        }
+      } catch (error) {
+        console.error('Error updating status:', error)
       }
       return
     }
@@ -162,11 +203,19 @@ export default function Activities() {
 
     if (id.startsWith('api-')) {
       const apiId = Number(id.replace('api-', ''))
-      const result = await actividadesService.deleteActividad(apiId)
-      if (result.ok) {
-        await loadActivities()
-      } else {
-        alert(result.error ?? 'No se pudo eliminar la actividad')
+      try {
+        const response = await fetch(`${API_BASE_URL}/actividades/${apiId}`, {
+          method: 'DELETE',
+        })
+        if (response.ok) {
+          await loadActivities()
+        } else {
+          const error = await response.json()
+          alert(error.error ?? 'No se pudo eliminar la actividad')
+        }
+      } catch (error) {
+        console.error('Error deleting activity:', error)
+        alert('Error de conexión')
       }
       return
     }
