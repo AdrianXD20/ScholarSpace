@@ -174,7 +174,7 @@ export default function MisClases() {
                           </>
                         )}
                         <span className="font-mono font-semibold text-foreground">
-                          {env.useMockAuth ? (c as any).codigoInvitacion : c.codigo}
+                          {'codigo' in c ? c.codigo : c.codigoInvitacion}
                         </span>
                       </p>
                     </div>
@@ -184,7 +184,7 @@ export default function MisClases() {
                         variant="outline"
                         size="sm"
                         className="gap-1"
-                        onClick={() => copiar(env.useMockAuth ? (c as any).codigoInvitacion : c.codigo)}
+                        onClick={() => copiar( 'codigo' in c ? c.codigo : c.codigoInvitacion)}
                       >
                         <Copy className="w-4 h-4" />
                         Copiar código
