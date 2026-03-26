@@ -8,11 +8,7 @@ import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { userService } from '../../services/user.service'
-import { proyectosService } from '../../services/proyectos.service'
 import { actividadesService } from '../../services/actividades.service'
-import { clasesService } from '../../services/clases.service'
-import type { ClaseApi } from '../../services/clases.service'
-import type { ProyectoApi } from '../../services/proyectos.service'
 import type { ActividadApi } from '../../services/actividades.service'
 import type { Activity } from '../../types/achievement.types'
 import { formatDate, cn } from '../../utils/helpers'
@@ -41,8 +37,6 @@ export default function Activities() {
   const { user } = useAuth()
   const [activitiesApi, setActivitiesApi] = useState<ActividadApi[]>([])
   const [activitiesLocal, setActivitiesLocal] = useState<ActividadLocal[]>([])
-  const [projects, setProjects] = useState<ProyectoApi[]>([])
-  const [clases, setClases] = useState<ClaseApi[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState<ActividadLocal | null>(null)
   const [isSavingActivity, setIsSavingActivity] = useState(false)
@@ -74,34 +68,6 @@ export default function Activities() {
     loadActivities()
   }, [user?.id])
 
-  // Load projects (to avoid typing ids manually)
-  useEffect(() => {
-    if (!user?.id) return
-    const loadProjects = async () => {
-      const res = await proyectosService.getProyectos()
-      if (res.ok && res.data) {
-        const userIdNum = Number(user.id)
-        setProjects(res.data.filter((p) => p.usuario_id === userIdNum))
-      } else {
-        setProjects([])
-      }
-    }
-    void loadProjects()
-  }, [user?.id])
-
-  // Load classes (for selection)
-  useEffect(() => {
-    const loadClases = async () => {
-      const res = await clasesService.getClasesFromApi()
-      if (res.ok && res.data) {
-        setClases(res.data as ClaseApi[])
-      } else {
-        setClases([])
-      }
-    }
-    void loadClases()
-  }, [])
-
   // Load local activities (mock)
   useEffect(() => {
     if (user?.id) {
@@ -130,25 +96,6 @@ export default function Activities() {
   const filteredActivities = filterStatus
     ? allActivities.filter((a) => a.status === filterStatus)
     : allActivities
-
-  // Auto-select first available project/class when creating a new activity.
-  useEffect(() => {
-    if (!isModalOpen) return
-    if (editingActivity) return
-
-    if (projects.length > 0 && formData.proyectoId === '') {
-      setFormData((prev) => ({ ...prev, proyectoId: String(projects[0].id) }))
-    }
-  }, [isModalOpen, projects, editingActivity, formData.proyectoId])
-
-  useEffect(() => {
-    if (!isModalOpen) return
-    if (editingActivity) return
-
-    if (clases.length > 0 && formData.claseId === '') {
-      setFormData((prev) => ({ ...prev, claseId: String(clases[0].id) }))
-    }
-  }, [isModalOpen, clases, editingActivity, formData.claseId])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -193,27 +140,9 @@ export default function Activities() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     if (!user?.id) return
 
-    // `user.id` puede venir como string; comparamos con el `userId` ya normalizado del item mostrado.
-    const userIdStr = String(user.id)
-
     if (id.startsWith('api-')) {
-      const activity = allActivities.find((a) => a.id === id)
-      if (!activity || activity.userId !== userIdStr) return
-
-      const apiId = activity.apiId
-      if (!apiId) return
-
-      const payload = {
-        titulo: activity.title,
-        descripcion: activity.description,
-        fecha: activity.date,
-        estado: newStatus,
-        usuario_id: Number(activity.userId),
-        proyecto_id: activity.proyectoId,
-        clase_id: activity.claseId,
-      }
-
-      const result = await actividadesService.updateActividad(apiId, payload)
+      const apiId = Number(id.replace('api-', ''))
+      const result = await actividadesService.updateActividad(apiId, { estado: newStatus })
       if (result.ok) {
         setActivitiesApi((prev) =>
           prev.map((a) => (a.id === apiId ? { ...a, estado: newStatus } : a))
@@ -228,17 +157,11 @@ export default function Activities() {
 
   const handleDelete = async (id: string) => {
     if (!user?.id) return
-    const userIdStr = String(user.id)
 
     if (!confirm('¿Estás seguro de eliminar esta actividad?')) return
 
     if (id.startsWith('api-')) {
-      const activity = allActivities.find((a) => a.id === id)
-      if (!activity || activity.userId !== userIdStr) return
-
-      const apiId = activity.apiId
-      if (!apiId) return
-
+      const apiId = Number(id.replace('api-', ''))
       const result = await actividadesService.deleteActividad(apiId)
       if (result.ok) {
         await loadActivities()
@@ -287,7 +210,7 @@ export default function Activities() {
           ))}
         </div>
         <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4 text-black dark:text-white" />
+          <Plus className="w-4 h-4" />
           Nueva Actividad
         </Button>
       </div>
@@ -319,7 +242,7 @@ export default function Activities() {
                         statusInfo.bg
                       )}
                     >
-                      <StatusIcon className={cn('w-5 h-5 text-black dark:text-white')} />
+                      <StatusIcon className={cn('w-5 h-5', statusInfo.color)} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -361,14 +284,14 @@ export default function Activities() {
                             className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary/10 transition-all"
                             aria-label="Editar actividad"
                           >
-                            <Edit className="w-4 h-4 text-black dark:text-white" />
+                            <Edit className="w-4 h-4 text-primary" />
                           </button>
                           <button
                             onClick={() => handleDelete(activity.id)}
-                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 transition-all"
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
                             aria-label="Eliminar actividad"
                           >
-                            <Trash2 className="w-4 h-4 text-black dark:text-white" />
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </button>
                         </div>
                       </div>
@@ -506,40 +429,20 @@ export default function Activities() {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Proyecto</label>
-              <select
-                value={formData.proyectoId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, proyectoId: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="" disabled>
-                  Selecciona un proyecto
-                </option>
-                {projects.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.titulo}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Clase</label>
-              <select
-                value={formData.claseId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, claseId: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="" disabled>
-                  Selecciona una clase
-                </option>
-                {clases.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Input
+              label="Proyecto ID"
+              type="number"
+              value={formData.proyectoId}
+              onChange={(e) => setFormData({ ...formData, proyectoId: e.target.value })}
+              placeholder="ID del proyecto"
+            />
+            <Input
+              label="Clase ID"
+              type="number"
+              value={formData.claseId}
+              onChange={(e) => setFormData({ ...formData, claseId: e.target.value })}
+              placeholder="ID de la clase"
+            />
           </div>
 
           <div className="flex gap-3 pt-2">
