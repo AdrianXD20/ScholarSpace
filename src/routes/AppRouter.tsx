@@ -3,7 +3,6 @@ import {
   ProtectedRoute,
   PublicRoute,
   PermissionRoute,
-  RoleRoute,
   StudentDashboardShell,
 } from './guards'
 
@@ -100,9 +99,9 @@ export default function AppRouter() {
           path="/profesor"
           element={
             <ProtectedRoute>
-              <RoleRoute roles={['teacher']}>
+              <PermissionRoute permission="teacher:classes:manage">
                 <ProfesorLayout />
-              </RoleRoute>
+              </PermissionRoute>
             </ProtectedRoute>
           }
         >

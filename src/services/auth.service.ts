@@ -51,7 +51,20 @@ interface ApiUserPayload {
 }
 
 function mapApiUser(p: ApiUserPayload): User {
-  const role: UserRole = p.role ?? (p.rol === 'USER' ? 'student' : 'student')
+  const normalizeRole = (v: unknown): string => String(v ?? '').trim().toLowerCase()
+  const fromRole = p.role ? normalizeRole(p.role) : ''
+  const fromRol = p.rol ? normalizeRole(p.rol) : ''
+
+  const roleRaw = fromRole || fromRol
+
+  let role: UserRole = 'student'
+  if (roleRaw) {
+    if (['teacher', 'docente', 'profesor', 'professora'].includes(roleRaw)) role = 'teacher'
+    if (['admin', 'administrador'].includes(roleRaw)) role = 'admin'
+    // Soporte flexible por si backend manda valores con prefijos.
+    if (roleRaw.includes('teacher') || roleRaw.includes('docent') || roleRaw.includes('profesor')) role = 'teacher'
+    if (roleRaw.includes('admin')) role = 'admin'
+  }
   const user: User = {
     id: p.id,
     name: p.name ?? p.nombre ?? '',

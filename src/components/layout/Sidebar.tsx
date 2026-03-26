@@ -12,6 +12,7 @@ import {
   iconActividades,
   iconPerfil,
   iconPortfolio,
+  iconProgreso,
   iconLogout,
 } from '../../assets/Icons'
 
@@ -50,6 +51,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const items: NavItem[] = [...baseNav]
     if (can('admin:panel')) {
       items.push({ to: '/dashboard/admin', label: 'Administración', icon: 'shield' })
+    }
+    if (can('teacher:classes:manage')) {
+      items.push({ to: '/profesor', label: 'Panel docente', src: iconProgreso, alt: 'Panel docente' })
     }
     return items
   }, [can])

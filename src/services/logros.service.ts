@@ -33,5 +33,24 @@ export const logrosService = {
       return { ok: false, error: msg }
     }
   },
+
+  async getLogrosFromApi(): Promise<{ ok: boolean; data?: LogroApi[]; error?: string }> {
+    try {
+      const res = await httpClient<unknown>(endpoints.logros.list, {
+        method: 'GET',
+      })
+      const arr = Array.isArray(res)
+        ? res
+        : typeof res === 'object' && res !== null && Array.isArray((res as any).data)
+          ? (res as any).data
+          : typeof res === 'object' && res !== null && Array.isArray((res as any).logros)
+            ? (res as any).logros
+            : []
+      return { ok: true, data: arr as LogroApi[] }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener los logros'
+      return { ok: false, error: msg }
+    }
+  },
 }
 

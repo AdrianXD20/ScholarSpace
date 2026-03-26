@@ -17,6 +17,19 @@ export interface ClaseApi {
   }
 }
 
+type AlumnoApiLike = unknown
+
+function extractAlumnoUserId(raw: AlumnoApiLike): string | null {
+  if (raw == null) return null
+  if (typeof raw === 'string' || typeof raw === 'number') return String(raw)
+  if (typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>
+    const id = obj.id ?? obj.usuario_id ?? obj.user_id
+    if (id != null) return String(id)
+  }
+  return null
+}
+
 const CLASSES_KEY = 'scholarspace_clases'
 const USERS_KEY = 'users'
 
@@ -195,14 +208,74 @@ export const clasesService = {
   },
 
   // API Methods
-  async getClasesFromApi(): Promise<{ ok: boolean; data?: any[]; error?: string }> {
+  async getClasesFromApi(): Promise<{ ok: boolean; data?: ClaseApi[]; error?: string }> {
     try {
-      const data = await httpClient<any[]>(endpoints.clases.list, {
+      const res = await httpClient<unknown>(endpoints.clases.list, {
         method: 'GET',
+      })
+      const arr = Array.isArray(res)
+        ? res
+        : typeof res === 'object' && res !== null && Array.isArray((res as any).data)
+          ? (res as any).data
+          : []
+      return { ok: true, data: arr as ClaseApi[] }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener las clases'
+      return { ok: false, error: msg }
+    }
+  },
+
+  async crearClaseFromApi(nombre: string): Promise<{ ok: boolean; data?: ClaseApi; error?: string }> {
+    const cleanNombre = nombre.trim()
+    if (!cleanNombre) return { ok: false, error: 'Nombre inválido.' }
+    try {
+      const data = await httpClient<ClaseApi>(endpoints.clases.create, {
+        method: 'POST',
+        body: { nombre: cleanNombre },
       })
       return { ok: true, data }
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener las clases'
+      const msg = e instanceof ApiError ? e.message : 'No se pudo crear la clase'
+      return { ok: false, error: msg }
+    }
+  },
+
+  async getClasesByDocenteFromApi(
+    teacherId: string
+  ): Promise<{ ok: boolean; data?: ClaseApi[]; error?: string }> {
+    const res = await clasesService.getClasesFromApi()
+    if (!res.ok || !res.data) return res
+    const teacherIdStr = String(teacherId)
+    return {
+      ok: true,
+      data: res.data.filter((c) => {
+        const anyC = c as unknown as Record<string, unknown>
+        const profesorId = anyC.profesor_id ?? anyC.teacher_id ?? anyC.profesorId ?? anyC.teacherId
+        return String(profesorId) === teacherIdStr
+      }),
+    }
+  },
+
+  async getAlumnosIdsFromClaseApi(
+    claseId: string | number
+  ): Promise<{ ok: boolean; data?: string[]; error?: string }> {
+    try {
+      const res = await httpClient<unknown>(endpoints.clases.alumnos(claseId), {
+        method: 'GET',
+      })
+      const arr = Array.isArray(res)
+        ? res
+        : typeof res === 'object' && res !== null && Array.isArray((res as any).data)
+          ? (res as any).data
+          : typeof res === 'object' && res !== null && Array.isArray((res as any).alumnos)
+            ? (res as any).alumnos
+            : typeof res === 'object' && res !== null && Array.isArray((res as any).students)
+              ? (res as any).students
+              : []
+      const ids = arr.map(extractAlumnoUserId).filter((x: string | null): x is string => !!x)
+      return { ok: true, data: ids }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener alumnos'
       return { ok: false, error: msg }
     }
   },

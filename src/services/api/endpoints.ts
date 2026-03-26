@@ -13,7 +13,10 @@ export const endpoints = {
   },
   clases: {
     list: '/clases',
+    /** Crea una clase para el docente autenticado */
+    create: '/clases',
     join: '/clases/unirse',
+    alumnos: (claseId: string | number) => `/clases/${claseId}/alumnos`,
   },
   actividades: {
     list: '/actividades',

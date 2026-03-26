@@ -1,90 +1,184 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { iconDashboard, iconPerfil, iconLogros, iconNotificacion } from '../../assets/Icons'
 import { useAuth } from '../../hooks/useAuth'
 import { clasesService } from '../../services/clases.service'
+import { logrosService } from '../../services/logros.service'
 import { userService } from '../../services/user.service'
 import { motivacionService } from '../../services/motivacion.service'
+import { env } from '../../config/env'
 import GraficoBarrasSimple from './GraficoBarrasSimple'
 import Card, { CardContent } from '../../components/ui/Card'
 
 const CAT_LABEL: Record<string, string> = {
-  academic: 'Académico',
   extracurricular: 'Extracurricular',
   personal: 'Personal',
-  professional: 'Profesional / laboral',
+  professional: 'Profesional',
 }
 
-function logrosDelMesPorCategoria(studentIds: string[]) {
-  const now = new Date()
-  const m = now.getMonth()
-  const y = now.getFullYear()
-  const counts: Record<string, number> = {
-    academic: 0,
+function logrosTotalesPorCategoriaLocal(studentIds: string[]) {
+  const counts = {
     extracurricular: 0,
     personal: 0,
     professional: 0,
   }
+  let total = 0
+
   for (const sid of studentIds) {
-    for (const a of userService.getAchievements(sid)) {
-      const d = new Date(a.date)
-      if (d.getMonth() === m && d.getFullYear() === y) {
-        counts[a.category] = (counts[a.category] ?? 0) + 1
-      }
+    const ach = userService.getAchievements(sid)
+    total += ach.length
+    for (const a of ach) {
+      if (a.category === 'extracurricular') counts.extracurricular += 1
+      if (a.category === 'personal') counts.personal += 1
+      if (a.category === 'professional') counts.professional += 1
     }
   }
-  return counts
+
+  return { counts, total }
 }
 
 export default function PanelProfesor() {
   const { user } = useAuth()
   const teacherId = user?.id ?? ''
 
-  const clases = useMemo(
+  // --- Modo mock/local (localStorage) ---
+  const clasesMock = useMemo(
     () => (teacherId ? clasesService.getClasesByDocente(teacherId) : []),
     [teacherId]
   )
 
-  const estudianteIds = useMemo(() => {
+  const estudianteIdsMock = useMemo(() => {
     const set = new Set<string>()
-    for (const c of clases) {
+    for (const c of clasesMock) {
       for (const id of c.estudianteIds) set.add(id)
     }
     return [...set]
-  }, [clases])
+  }, [clasesMock])
 
-  const logrosMes = useMemo(
-    () => logrosDelMesPorCategoria(estudianteIds),
-    [estudianteIds]
+  const logrosLocal = useMemo(
+    () => logrosTotalesPorCategoriaLocal(estudianteIdsMock),
+    [estudianteIdsMock]
   )
 
-  const barras = useMemo(
-    () =>
-      Object.entries(logrosMes).map(([k, v]) => ({
-        etiqueta: CAT_LABEL[k] ?? k,
-        valor: v,
-      })),
-    [logrosMes]
-  )
+  // --- Modo API ---
+  const [isLoadingApi, setIsLoadingApi] = useState(false)
+  const [clasesCountApi, setClasesCountApi] = useState(0)
+  const [estudianteIdsApi, setEstudianteIdsApi] = useState<string[]>([])
+  const [logrosCategoriasApi, setLogrosCategoriasApi] = useState({
+    extracurricular: 0,
+    personal: 0,
+    professional: 0,
+  })
+  const [logrosTotalApi, setLogrosTotalApi] = useState(0)
+
+  useEffect(() => {
+    if (!teacherId || env.useMockAuth) return
+    let cancelled = false
+
+    const load = async () => {
+      setIsLoadingApi(true)
+      try {
+        const teacherClasses = await clasesService.getClasesByDocenteFromApi(teacherId)
+        if (cancelled) return
+        if (!teacherClasses.ok || !teacherClasses.data) {
+          setClasesCountApi(0)
+          setEstudianteIdsApi([])
+          setLogrosCategoriasApi({ extracurricular: 0, personal: 0, professional: 0 })
+          setLogrosTotalApi(0)
+          return
+        }
+
+        const clases = teacherClasses.data
+        setClasesCountApi(clases.length)
+
+        const studentSets: Set<string> = new Set()
+        for (const c of clases) {
+          const alumnosRes = await clasesService.getAlumnosIdsFromClaseApi(c.id)
+          if (!alumnosRes.ok || !alumnosRes.data) continue
+          for (const sid of alumnosRes.data) studentSets.add(String(sid))
+        }
+
+        const studentIds = [...studentSets]
+        setEstudianteIdsApi(studentIds)
+
+        const logrosRes = await logrosService.getLogrosFromApi()
+        const counts = { extracurricular: 0, personal: 0, professional: 0 }
+        let total = 0
+
+        if (logrosRes.ok && logrosRes.data) {
+          const allowed = new Set(studentIds.map(String))
+          for (const l of logrosRes.data) {
+            const uid = String(l.usuario_id)
+            if (!allowed.has(uid)) continue
+            total += 1
+            const tipo = String(l.tipo ?? '').trim().toLowerCase()
+            if (tipo === 'extracurricular') counts.extracurricular += 1
+            if (tipo === 'personal') counts.personal += 1
+            if (tipo === 'profesional') counts.professional += 1
+          }
+        }
+
+        if (!cancelled) {
+          setLogrosCategoriasApi(counts)
+          setLogrosTotalApi(total)
+        }
+      } finally {
+        if (!cancelled) setIsLoadingApi(false)
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [teacherId])
+
+  const barras = useMemo(() => {
+    if (env.useMockAuth) {
+      const c = logrosLocal.counts
+      return ([
+        { etiqueta: CAT_LABEL.extracurricular, valor: c.extracurricular },
+        { etiqueta: CAT_LABEL.personal, valor: c.personal },
+        { etiqueta: CAT_LABEL.professional, valor: c.professional },
+      ] as const).map((x) => ({ etiqueta: x.etiqueta, valor: x.valor }))
+    }
+
+    return [
+      { etiqueta: CAT_LABEL.extracurricular, valor: logrosCategoriasApi.extracurricular },
+      { etiqueta: CAT_LABEL.personal, valor: logrosCategoriasApi.personal },
+      { etiqueta: CAT_LABEL.professional, valor: logrosCategoriasApi.professional },
+    ]
+  }, [env.useMockAuth, logrosCategoriasApi, logrosLocal.counts])
 
   const mensajesRecientes = useMemo(() => {
     const out: { nombre: string; preview: string }[] = []
-    for (const sid of estudianteIds.slice(0, 5)) {
+    const ids = env.useMockAuth ? estudianteIdsMock : estudianteIdsApi
+    for (const sid of ids.slice(0, 5)) {
       const u = clasesService.getUserPublic(sid)
       const ult = motivacionService.ultimoParaEstudiante(sid)
-      if (ult && u) {
-        out.push({ nombre: u.name, preview: ult.mensaje.slice(0, 80) })
-      }
+      if (ult && u) out.push({ nombre: u.name, preview: ult.mensaje.slice(0, 80) })
     }
     return out
-  }, [estudianteIds])
+  }, [estudianteIdsApi, estudianteIdsMock])
+
+  const clasesCount = env.useMockAuth ? clasesMock.length : clasesCountApi
+  const estudianteIds = env.useMockAuth ? estudianteIdsMock : estudianteIdsApi
+  const logrosTotal = env.useMockAuth ? logrosLocal.total : logrosTotalApi
+
+  if (!env.useMockAuth && isLoadingApi) {
+    return (
+      <div className="space-y-8 max-w-5xl mx-auto">
+        <p className="text-sm text-muted-foreground">Cargando resumen docente...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Resumen docente</h1>
         <p className="text-muted-foreground mt-1">
-          Vista de tus clases y del progreso de tus estudiantes este mes.
+          Vista de tus clases, estudiantes y logros en general.
         </p>
       </div>
 
@@ -93,7 +187,7 @@ export default function PanelProfesor() {
           <CardContent className="p-4 flex items-center gap-3">
             <img src={iconDashboard} alt="" className="w-10 h-10 object-contain shrink-0" aria-hidden />
             <div>
-              <p className="text-2xl font-bold text-foreground">{clases.length}</p>
+              <p className="text-2xl font-bold text-foreground">{clasesCount}</p>
               <p className="text-sm text-muted-foreground">Clases</p>
             </div>
           </CardContent>
@@ -111,10 +205,8 @@ export default function PanelProfesor() {
           <CardContent className="p-4 flex items-center gap-3">
             <img src={iconLogros} alt="" className="w-10 h-10 object-contain shrink-0" aria-hidden />
             <div>
-              <p className="text-2xl font-bold text-foreground">
-                {Object.values(logrosMes).reduce((a, b) => a + b, 0)}
-              </p>
-              <p className="text-sm text-muted-foreground">Logros registrados (mes)</p>
+              <p className="text-2xl font-bold text-foreground">{logrosTotal}</p>
+              <p className="text-sm text-muted-foreground">Logros registrados (total)</p>
             </div>
           </CardContent>
         </Card>
@@ -122,8 +214,8 @@ export default function PanelProfesor() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         <GraficoBarrasSimple
-          titulo="Logros por categoría (mes actual)"
-          descripcion="Suma de logros que tus estudiantes registraron este mes, por tipo."
+          titulo="Logros por categoría (Extracurricular, Personal, Profesional)"
+          descripcion="Suma de logros que registraron tus estudiantes en tus clases, por tipo."
           datos={barras}
         />
         <div className="rounded-xl border border-border bg-card p-4">

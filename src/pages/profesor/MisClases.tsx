@@ -1,37 +1,92 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Copy, ChevronRight } from 'lucide-react'
+import { env } from '../../config/env'
 import { useAuth } from '../../hooks/useAuth'
 import { clasesService } from '../../services/clases.service'
+import type { ClaseApi } from '../../services/clases.service'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 
 export default function MisClases() {
   const { user } = useAuth()
+  const teacherId = user?.id ?? ''
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [msg, setMsg] = useState('')
   const [version, setVersion] = useState(0)
 
-  const clases = useMemo(() => {
-    if (!user?.id) return []
-    return clasesService.getClasesByDocente(user.id)
-  }, [user?.id, version])
+  const clasesMock = useMemo(() => {
+    if (!teacherId) return []
+    return clasesService.getClasesByDocente(teacherId)
+  }, [teacherId, version])
+
+  const [clasesApi, setClasesApi] = useState<Array<ClaseApi & { estudiantesCount?: number }>>([])
+  const [isLoadingApi, setIsLoadingApi] = useState(false)
+
+  useEffect(() => {
+    if (!teacherId || env.useMockAuth) return
+    let cancelled = false
+
+    const load = async () => {
+      setIsLoadingApi(true)
+      try {
+        const res = await clasesService.getClasesByDocenteFromApi(teacherId)
+        if (!res.ok || !res.data) {
+          if (!cancelled) setClasesApi([])
+          return
+        }
+
+        const withCounts = await Promise.all(
+          res.data.map(async (c) => {
+            const alumnosRes = await clasesService.getAlumnosIdsFromClaseApi(c.id)
+            return { ...c, estudiantesCount: alumnosRes.ok && alumnosRes.data ? alumnosRes.data.length : 0 }
+          })
+        )
+
+        if (!cancelled) setClasesApi(withCounts)
+      } finally {
+        if (!cancelled) setIsLoadingApi(false)
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [teacherId, version])
+
+  const clases = env.useMockAuth ? clasesMock : clasesApi
 
   function refresh() {
     setVersion((n) => n + 1)
   }
 
-  const handleCrear = (e: FormEvent) => {
+  const handleCrear = async (e: FormEvent) => {
     e.preventDefault()
     setMsg('')
-    if (!user?.id || !nombre.trim()) {
+    if (!teacherId || !nombre.trim()) {
       setMsg('Indica el nombre de la clase.')
       return
     }
-    clasesService.crearClase(user.id, nombre.trim(), descripcion.trim() || undefined)
+
+    if (env.useMockAuth) {
+      clasesService.crearClase(teacherId, nombre.trim(), descripcion.trim() || undefined)
+      setNombre('')
+      setDescripcion('')
+      setMsg('Clase creada. Comparte el código de invitación con tus estudiantes.')
+      refresh()
+      return
+    }
+
+    const res = await clasesService.crearClaseFromApi(nombre.trim())
+    if (!res.ok) {
+      setMsg(res.error ?? 'No se pudo crear la clase.')
+      return
+    }
+
     setNombre('')
     setDescripcion('')
     setMsg('Clase creada. Comparte el código de invitación con tus estudiantes.')
@@ -92,6 +147,9 @@ export default function MisClases() {
 
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-3">Clases creadas</h2>
+        {env.useMockAuth ? null : isLoadingApi ? (
+          <p className="text-sm text-muted-foreground">Cargando clases...</p>
+        ) : null}
         {clases.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aún no tienes clases. Crea la primera arriba.</p>
         ) : (
@@ -102,13 +160,21 @@ export default function MisClases() {
                   <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <p className="font-medium text-foreground">{c.nombre}</p>
-                      {c.descripcion && (
+                      {'descripcion' in c && c.descripcion ? (
                         <p className="text-sm text-muted-foreground mt-0.5">{c.descripcion}</p>
-                      )}
+                      ) : null}
                       <p className="text-xs text-muted-foreground mt-2">
-                        {c.estudianteIds.length} estudiante(s) · Código:{' '}
+                        {'estudiantesCount' in c && typeof c.estudiantesCount === 'number' ? (
+                          <>
+                            {c.estudiantesCount} estudiante(s) · Código:{' '}
+                          </>
+                        ) : (
+                          <>
+                            {'estudianteIds' in c ? (c as any).estudianteIds.length : 0} estudiante(s) · Código:{' '}
+                          </>
+                        )}
                         <span className="font-mono font-semibold text-foreground">
-                          {c.codigoInvitacion}
+                          {env.useMockAuth ? (c as any).codigoInvitacion : c.codigo}
                         </span>
                       </p>
                     </div>
@@ -118,7 +184,7 @@ export default function MisClases() {
                         variant="outline"
                         size="sm"
                         className="gap-1"
-                        onClick={() => copiar(c.codigoInvitacion)}
+                        onClick={() => copiar(env.useMockAuth ? (c as any).codigoInvitacion : c.codigo)}
                       >
                         <Copy className="w-4 h-4" />
                         Copiar código
