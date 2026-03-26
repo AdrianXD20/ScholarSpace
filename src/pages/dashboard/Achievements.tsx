@@ -16,7 +16,8 @@ import { formatDate, cn } from '../../utils/helpers'
 
 const categoryOptions = [
   { value: 'academic', label: 'Academico', icon: Award, color: 'text-primary', bg: 'bg-primary/10' },
-  { value: 'extracurricular', label: 'Extracurricular', icon: Star, color: 'text-accent', bg: 'bg-accent/10' },
+  // `text-accent/bg-accent` no existe en Tailwind por defecto, por eso se ve "apagado".
+  { value: 'extracurricular', label: 'Extracurricular', icon: Star, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
   { value: 'personal', label: 'Personal', icon: Trophy, color: 'text-green-400', bg: 'bg-green-400/10' },
   { value: 'professional', label: 'Profesional', icon: Briefcase, color: 'text-orange-400', bg: 'bg-orange-400/10' },
 ] as const
@@ -26,6 +27,24 @@ const tipoLogroApiByCategory: Record<Achievement['category'], 'Academico' | 'Ext
   extracurricular: 'Extracurricular',
   personal: 'Personal',
   professional: 'Profesional',
+}
+
+function normalizeCategory(raw: string): Achievement['category'] {
+  // Unifica categorías que vienen de distintas fuentes (API vs localStorage).
+  // Soporta: `academic`/`Academico`, `extracurricular`/`Extracurricular`, etc.
+  const base = raw
+    ?.trim()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+
+  if (base === 'academico' || base === 'academic') return 'academic'
+  if (base === 'extracurricular') return 'extracurricular'
+  if (base === 'personal') return 'personal'
+  if (base === 'profesional' || base === 'professional') return 'professional'
+
+  // Fallback: evita que el filtro rompa por valores inesperados.
+  return 'academic'
 }
 
 export default function Achievements() {
@@ -45,7 +64,12 @@ export default function Achievements() {
 
   useEffect(() => {
     if (user?.id) {
-      setAchievements(userService.getAchievements(user.id))
+      setAchievements(
+        userService.getAchievements(user.id).map((a) => ({
+          ...a,
+          category: normalizeCategory(a.category),
+        }))
+      )
     }
   }, [user?.id])
 
@@ -79,7 +103,12 @@ export default function Achievements() {
 
   const loadAchievements = () => {
     if (user?.id) {
-      setAchievements(userService.getAchievements(user.id))
+      setAchievements(
+        userService.getAchievements(user.id).map((a) => ({
+          ...a,
+          category: normalizeCategory(a.category),
+        }))
+      )
     }
   }
 
@@ -123,7 +152,7 @@ export default function Achievements() {
           title: payload.titulo,
           description: payload.descripcion,
           date: payload.fecha,
-          category: payload.tipo as Achievement['category'],
+          category: formData.category,
           proyecto_id: payload.proyecto_id,
         },
         user.id
@@ -196,7 +225,7 @@ export default function Achievements() {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', categoryInfo.bg)}>
-                      <IconComponent className={cn('w-5 h-5', categoryInfo.color)} />
+                      <IconComponent className={cn('w-5 h-5 text-black dark:text-white')} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -287,7 +316,7 @@ export default function Achievements() {
                         : 'border-border hover:bg-secondary'
                     )}
                   >
-                    <IconComponent className={cn('w-4 h-4', cat.color)} />
+                    <IconComponent className={cn('w-4 h-4 text-black dark:text-white')} />
                     <span className="text-sm text-foreground">{cat.label}</span>
                   </button>
                 )

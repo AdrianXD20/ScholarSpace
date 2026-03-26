@@ -167,7 +167,7 @@ export default function Notes() {
           />
         </div>
         <Button onClick={openCreateModal}>
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-black dark:text-white" />
           Nuevo Apunte
         </Button>
       </div>
@@ -180,20 +180,20 @@ export default function Notes() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-foreground line-clamp-1">{note.titulo}</h3>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 transition-opacity">
                     <button
                       onClick={() => openEditModal(note)}
-                      className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                      className="p-1.5 rounded-lg bg-secondary/40 hover:bg-secondary transition-colors"
                       aria-label="Editar apunte"
                     >
-                      <Edit className="w-4 h-4 text-muted-foreground" />
+                      <Edit className="w-4 h-4 text-black dark:text-white" />
                     </button>
                     <button
                       onClick={() => handleDelete(note.id)}
-                      className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                      className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 transition-colors"
                       aria-label="Eliminar apunte"
                     >
-                      <Trash2 className="w-4 h-4 text-destructive" />
+                      <Trash2 className="w-4 h-4 text-black dark:text-white" />
                     </button>
                   </div>
                 </div>

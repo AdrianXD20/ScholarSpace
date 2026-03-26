@@ -4,10 +4,12 @@ import { Plus, ArrowRight } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { useAuth } from '../../hooks/useAuth'
-import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
-import type { Note } from '../../types/note.types'
-import type { Achievement, Activity } from '../../types/achievement.types'
+import { notasService } from '../../services/notas.service'
+import { actividadesService } from '../../services/actividades.service'
+import type { NotaApi } from '../../services/notas.service'
+import type { ActividadApi } from '../../services/actividades.service'
+import type { Achievement } from '../../types/achievement.types'
 import { formatDate, truncateText } from '../../utils/helpers'
 import {
   iconApuntes,
@@ -18,15 +20,33 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const [notes, setNotes] = useState<Note[]>([])
+  const [notes, setNotes] = useState<NotaApi[]>([])
   const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [activities, setActivities] = useState<ActividadApi[]>([])
 
   useEffect(() => {
     if (user?.id) {
-      setNotes(notesService.getNotes(user.id))
       setAchievements(userService.getAchievements(user.id))
-      setActivities(userService.getActivities(user.id))
+      void (async () => {
+        const [notesRes, activitiesRes] = await Promise.all([
+          notasService.getNotas(),
+          actividadesService.getActividades(),
+        ])
+
+        const userIdNum = Number(user.id)
+
+        if (notesRes.ok && notesRes.data) {
+          setNotes(notesRes.data.filter((n) => n.usuario_id === userIdNum))
+        } else {
+          setNotes([])
+        }
+
+        if (activitiesRes.ok && activitiesRes.data) {
+          setActivities(activitiesRes.data.filter((a) => a.usuario_id === userIdNum))
+        } else {
+          setActivities([])
+        }
+      })()
     }
   }, [user?.id])
 
@@ -36,13 +56,15 @@ export default function Dashboard() {
     { label: 'Actividades', value: activities.length, src: iconActividades, alt: 'Actividades' },
     {
       label: 'En progreso',
-      value: activities.filter((a) => a.status === 'in-progress').length,
+      value: activities.filter((a) => a.estado === 'En progreso' || a.estado === 'in-progress').length,
       src: iconProgreso,
       alt: 'Progreso',
     },
   ]
 
-  const recentNotes = notes.slice(-3).reverse()
+  const recentNotes = [...notes]
+    .sort((a, b) => +new Date(b.fecha).valueOf() - +new Date(a.fecha).valueOf())
+    .slice(0, 3)
   const recentAchievements = achievements.slice(-3).reverse()
 
   return (
@@ -99,11 +121,11 @@ export default function Dashboard() {
               <ul className="flex flex-col gap-3">
                 {recentNotes.map((note) => (
                   <li key={note.id} className="p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                    <h4 className="font-medium text-foreground">{note.title}</h4>
+                    <h4 className="font-medium text-foreground">{note.titulo}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {truncateText(note.content, 80)}
+                      {truncateText(note.contenido, 80)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">{formatDate(note.createdAt)}</p>
+                    <p className="text-xs text-muted-foreground mt-2">{formatDate(note.fecha)}</p>
                   </li>
                 ))}
               </ul>

@@ -7,8 +7,9 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
-import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
+import { notasService } from '../../services/notas.service'
+import { actividadesService } from '../../services/actividades.service'
 import { usuarioService } from '../../services/usuario.service'
 import UserAvatar from '../../components/common/UserAvatar'
 import { formatDate, cn } from '../../utils/helpers'
@@ -66,11 +67,23 @@ export default function Profile() {
 
   useEffect(() => {
     if (user?.id) {
-      setStats({
-        notes: notesService.getNotes(user.id).length,
-        achievements: userService.getAchievements(user.id).length,
-        activities: userService.getActivities(user.id).length,
-      })
+      void (async () => {
+        const [notesRes, activitiesRes] = await Promise.all([
+          notasService.getNotas(),
+          actividadesService.getActividades(),
+        ])
+
+        const userIdNum = Number(user.id)
+
+        setStats({
+          notes: notesRes.ok && notesRes.data ? notesRes.data.filter((n) => n.usuario_id === userIdNum).length : 0,
+          achievements: userService.getAchievements(user.id).length,
+          activities:
+            activitiesRes.ok && activitiesRes.data
+              ? activitiesRes.data.filter((a) => a.usuario_id === userIdNum).length
+              : 0,
+        })
+      })()
     }
   }, [user?.id])
 
