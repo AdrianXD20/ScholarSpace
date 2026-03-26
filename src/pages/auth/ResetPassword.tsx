@@ -20,7 +20,7 @@ export default function ResetPassword() {
     e.preventDefault()
     setError('')
     if (!token) {
-      setError('Falta el token de recuperación. Abre el enlace del correo.')
+      setError('Token no válido. Por favor verifica el enlace o solicita uno nuevo.')
       return
     }
     if (password.length < 6) {
@@ -54,8 +54,8 @@ export default function ResetPassword() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Restablecer contraseña</CardTitle>
-            <CardDescription>El token viaja en la URL (query `token`)</CardDescription>
+            <CardTitle>Nueva contraseña</CardTitle>
+            <CardDescription>Elige una contraseña segura para tu cuenta</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">

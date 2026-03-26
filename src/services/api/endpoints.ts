@@ -7,6 +7,8 @@ export const endpoints = {
     logout: '/auth/logout',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
+    /** Endpoint de tu API para restablecer contraseña */
+    resetear: '/resetear',
   },
   usuario: {
     profile: (id: string | number) => `/usuario/${id}`,

@@ -1,35 +1,39 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { BookOpen, Mail, ArrowLeft } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { BookOpen, Key, ArrowLeft } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import { authService } from '../../services/auth.service'
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
+export default function VerifyToken() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tokenFromUrl = searchParams.get('token') ?? ''
+  const [token, setToken] = useState(tokenFromUrl)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    setMessage('')
-    if (!email.trim()) {
-      setError('Ingresa tu correo electrónico.')
+
+    if (!token.trim()) {
+      setError('Ingresa el token de recuperación que recibiste en tu correo.')
       return
     }
+
     setIsLoading(true)
-    const result = await authService.requestPasswordReset(email.trim())
+
+    const result = await authService.verifyResetToken(token.trim())
     setIsLoading(false)
+
     if (result.ok) {
-      setMessage(
-        'Te hemos enviado un correo con un enlace para verificar tu identidad. Haz clic en el enlace para continuar con el proceso de recuperación.'
-      )
+      // Redirigir a la página de nueva contraseña con el token
+      navigate(`/reset-password?token=${encodeURIComponent(token.trim())}`)
     } else {
-      setError(result.error ?? 'No se pudo procesar la solicitud.')
+      setError(result.error ?? 'Token inválido o expirado.')
     }
   }
 
@@ -40,16 +44,24 @@ export default function ForgotPassword() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
             <BookOpen className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Recuperar contraseña</h1>
+          <h1 className="text-3xl font-bold text-foreground">Verificar token</h1>
           <p className="text-muted-foreground mt-2">
-            Te enviaremos un enlace para verificar tu identidad y crear una nueva contraseña
+            {tokenFromUrl 
+              ? 'Hemos detectado un token en el enlace. Confirma para continuar.' 
+              : 'Ingresa el token que recibiste en tu correo electrónico.'
+            }
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Olvidé mi contraseña</CardTitle>
-            <CardDescription>Escribe el correo asociado a tu cuenta para recibir un enlace de verificación</CardDescription>
+            <CardTitle>Token de recuperación</CardTitle>
+            <CardDescription>
+              {tokenFromUrl 
+                ? 'Revisa el token y continúa para crear tu nueva contraseña.' 
+                : 'Pega el código de verificación que te enviamos por correo.'
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -58,36 +70,33 @@ export default function ForgotPassword() {
                   {error}
                 </div>
               )}
-              {message && (
-                <div className="p-3 rounded-lg bg-primary/10 text-foreground text-sm">{message}</div>
-              )}
 
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Ingresa tu token de recuperación"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
                   className="pl-10"
-                  autoComplete="email"
-                  aria-label="Correo electrónico"
+                  autoComplete="off"
+                  aria-label="Token de recuperación"
                 />
               </div>
 
               <Button type="submit" isLoading={isLoading} className="w-full mt-2">
-                Enviar enlace de verificación
+                {isLoading ? 'Verificando...' : tokenFromUrl ? 'Continuar' : 'Verificar token'}
               </Button>
 
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">
-                  ¿Ya tienes el código de verificación?
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  ¿No recibiste el correo?
                 </p>
                 <Link
-                  to="/verify-token"
+                  to="/forgot-password"
                   className="text-sm text-primary hover:underline"
                 >
-                  Ingresar token manualmente
+                  Solicitar nuevo enlace
                 </Link>
               </div>
 

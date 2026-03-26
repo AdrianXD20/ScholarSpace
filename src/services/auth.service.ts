@@ -308,14 +308,40 @@ export const authService = {
       return { ok: true }
     }
     try {
-      await httpClient(endpoints.auth.resetPassword, {
+      await httpClient(endpoints.auth.resetear, {
         method: 'POST',
-        body: { token, password: newPassword },
+        body: { token, nuevaContraseña: newPassword },
         skipAuth: true,
       })
       return { ok: true }
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'No se pudo restablecer la contraseña.'
+      return { ok: false, error: msg }
+    }
+  },
+
+  async verifyResetToken(token: string): Promise<{ ok: boolean; error?: string }> {
+    if (env.useMockAuth) {
+      await new Promise((r) => setTimeout(r, 300))
+      const tokens = JSON.parse(localStorage.getItem(RESET_TOKENS_KEY) || '{}') as Record<
+        string,
+        string
+      >
+      const email = tokens[token]
+      if (!email) {
+        return { ok: false, error: 'Token inválido o expirado.' }
+      }
+      return { ok: true }
+    }
+    try {
+      // Para el backend real, por ahora solo validamos formato básico
+      // La validación real se hace en resetPassword
+      if (!token || token.trim().length < 10) {
+        return { ok: false, error: 'Token inválido.' }
+      }
+      return { ok: true }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Token inválido o expirado.'
       return { ok: false, error: msg }
     }
   },
