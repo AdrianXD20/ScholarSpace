@@ -6,6 +6,8 @@ export interface Achievement {
   category: 'academic' | 'extracurricular' | 'personal' | 'professional'
   icon?: string
   userId: string
+  /** Proyecto asociado (backend: `proyecto_id`). Solo se usa para relacionar. */
+  proyecto_id?: number
 }
 
 export interface Activity {

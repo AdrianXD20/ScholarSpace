@@ -2,6 +2,20 @@ import type { Clase } from '../types/clase.types'
 import type { User } from '../types/user.types'
 import { generateId } from '../utils/helpers'
 import { resolvePermissions } from '../constants/permissions'
+import { httpClient, ApiError } from './api/httpClient'
+import { endpoints } from './api/endpoints'
+
+// API Clase interface (diferente de la Clase local/mock)
+export interface ClaseApi {
+  id: number
+  nombre: string
+  codigo: string
+  profesor_id: number
+  profesor: {
+    nombre: string
+    email: string
+  }
+}
 
 const CLASSES_KEY = 'scholarspace_clases'
 const USERS_KEY = 'users'
@@ -62,6 +76,32 @@ function genCodigo(): string {
   let s = ''
   for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)]
   return s
+}
+
+const JOINED_CLASSES_KEY = 'joined_clases'
+
+function getJoinedClassIds(): number[] {
+  try {
+    return JSON.parse(localStorage.getItem(JOINED_CLASSES_KEY) || '[]') as number[]
+  } catch {
+    return []
+  }
+}
+
+function setJoinedClassIds(ids: number[]) {
+  localStorage.setItem(JOINED_CLASSES_KEY, JSON.stringify(Array.from(new Set(ids))))
+}
+
+function addJoinedClassId(id: number) {
+  const ids = getJoinedClassIds()
+  if (!ids.includes(id)) {
+    ids.push(id)
+    setJoinedClassIds(ids)
+  }
+}
+
+function isClassJoined(id: number): boolean {
+  return getJoinedClassIds().includes(id)
 }
 
 export const clasesService = {
@@ -153,4 +193,39 @@ export const clasesService = {
     }
     return true
   },
+
+  // API Methods
+  async getClasesFromApi(): Promise<{ ok: boolean; data?: any[]; error?: string }> {
+    try {
+      const data = await httpClient<any[]>(endpoints.clases.list, {
+        method: 'GET',
+      })
+      return { ok: true, data }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener las clases'
+      return { ok: false, error: msg }
+    }
+  },
+
+  async joinClaseFromApi(codigo: string): Promise<{ ok: boolean; data?: any; error?: string }> {
+    try {
+      const data = await httpClient<any>(endpoints.clases.join, {
+        method: 'POST',
+        body: { codigo },
+      })
+      // Si la API devuelve la clase con id, guardamos localmente para flag
+      if (data?.id) {
+        addJoinedClassId(Number(data.id))
+      }
+      return { ok: true, data }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo unir a la clase'
+      return { ok: false, error: msg }
+    }
+  },
+
+  getJoinedClassIds,
+  isClassJoined,
+  addJoinedClassId,
+  setJoinedClassIds,
 }

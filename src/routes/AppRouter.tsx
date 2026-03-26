@@ -18,9 +18,11 @@ import Unauthorized from '../pages/Unauthorized'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import Dashboard from '../pages/dashboard/Dashboard'
 import Notes from '../pages/dashboard/Notes'
+import Projects from '../pages/dashboard/Projects'
 import Achievements from '../pages/dashboard/Achievements'
 import Activities from '../pages/dashboard/Activities'
 import Profile from '../pages/dashboard/Profile'
+import Clases from '../pages/dashboard/Clases'
 import Admin from '../pages/dashboard/Admin'
 
 // Vista docente (carpeta dedicada)
@@ -79,8 +81,10 @@ export default function AppRouter() {
         >
           <Route index element={<Dashboard />} />
           <Route path="notes" element={<Notes />} />
+          <Route path="projects" element={<Projects />} />
           <Route path="achievements" element={<Achievements />} />
           <Route path="activities" element={<Activities />} />
+          <Route path="clases" element={<Clases />} />
           <Route path="profile" element={<Profile />} />
           <Route
             path="admin"

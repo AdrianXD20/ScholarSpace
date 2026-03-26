@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
-import { Plus, CheckCircle, Clock, Target, Trash2 } from 'lucide-react'
+import { Plus, CheckCircle, Clock, Target, Trash2, Edit } from 'lucide-react'
 import { iconActividades } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -8,6 +8,8 @@ import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { userService } from '../../services/user.service'
+import { actividadesService } from '../../services/actividades.service'
+import type { ActividadApi } from '../../services/actividades.service'
 import type { Activity } from '../../types/achievement.types'
 import { formatDate, cn } from '../../utils/helpers'
 
@@ -20,74 +22,168 @@ const typeOptions = [
 ] as const
 
 const statusOptions = [
-  { value: 'completed', label: 'Completado', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
-  { value: 'in-progress', label: 'En progreso', icon: Clock, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  { value: 'planned', label: 'Planeado', icon: Target, color: 'text-primary', bg: 'bg-primary/10' },
+  { value: 'Completado', label: 'Completado', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
+  { value: 'En progreso', label: 'En progreso', icon: Clock, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+  { value: 'Planeado', label: 'Planeado', icon: Target, color: 'text-primary', bg: 'bg-primary/10' },
 ] as const
+
+interface ActividadLocal extends Activity {
+  apiId?: number
+  proyectoId?: number
+  claseId?: number
+}
 
 export default function Activities() {
   const { user } = useAuth()
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [activitiesApi, setActivitiesApi] = useState<ActividadApi[]>([])
+  const [activitiesLocal, setActivitiesLocal] = useState<ActividadLocal[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingActivity, setEditingActivity] = useState<ActividadLocal | null>(null)
+  const [isSavingActivity, setIsSavingActivity] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [isLoadingApi, setIsLoadingApi] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     date: '',
     type: 'project' as Activity['type'],
-    status: 'planned' as Activity['status'],
+    status: 'Planeado' as string,
+    proyectoId: '',
+    claseId: '',
   })
 
+  // Load activities from API
+  const loadActivities = async () => {
+    if (!user?.id) return
+    setIsLoadingApi(true)
+    const result = await actividadesService.getActividades()
+    if (result.ok && result.data) {
+      const userActivities = result.data.filter((a) => a.usuario_id === Number(user?.id))
+      setActivitiesApi(userActivities)
+    }
+    setIsLoadingApi(false)
+  }
+
+  useEffect(() => {
+    loadActivities()
+  }, [user?.id])
+
+  // Load local activities (mock)
   useEffect(() => {
     if (user?.id) {
-      loadActivities()
+      const local = userService.getActivities(user.id)
+      setActivitiesLocal(local)
     }
   }, [user?.id])
 
-  const loadActivities = () => {
-    if (user?.id) {
-      setActivities(userService.getActivities(user.id))
-    }
-  }
+  // Combine APIs and local activities, filter by status
+  const allActivities = [
+    ...activitiesApi.map((a) => ({
+      id: `api-${a.id}`,
+      apiId: a.id,
+      title: a.titulo,
+      description: a.descripcion,
+      date: a.fecha,
+      type: 'project' as Activity['type'],
+      status: a.estado,
+      userId: String(a.usuario_id),
+      proyectoId: a.proyecto_id,
+      claseId: a.clase_id,
+    } as ActividadLocal)),
+    ...activitiesLocal,
+  ]
 
   const filteredActivities = filterStatus
-    ? activities.filter((a) => a.status === filterStatus)
-    : activities
+    ? allActivities.filter((a) => a.status === filterStatus)
+    : allActivities
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!user?.id || !formData.title.trim()) return
 
-    userService.createActivity(
-      {
-        title: formData.title,
-        description: formData.description,
-        date: formData.date || new Date().toISOString(),
-        type: formData.type,
-        status: formData.status,
-      },
-      user.id
-    )
+    setIsSavingActivity(true)
 
-    loadActivities()
-    setIsModalOpen(false)
-    setFormData({ title: '', description: '', date: '', type: 'project', status: 'planned' })
-  }
-
-  const handleStatusChange = (id: string, newStatus: Activity['status']) => {
-    userService.updateActivity(id, { status: newStatus })
-    loadActivities()
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm('¿Estas seguro de eliminar esta actividad?')) {
-      userService.deleteActivity(id)
-      loadActivities()
+    const payload = {
+      titulo: formData.title.trim(),
+      descripcion: formData.description.trim(),
+      fecha: formData.date || new Date().toISOString(),
+      estado: formData.status,
+      usuario_id: Number(user.id),
+      proyecto_id: formData.proyectoId ? Number(formData.proyectoId) : undefined,
+      clase_id: formData.claseId ? Number(formData.claseId) : undefined,
     }
+
+    if (editingActivity?.apiId) {
+      const result = await actividadesService.updateActividad(editingActivity.apiId, payload)
+      setIsSavingActivity(false)
+      if (result.ok) {
+        await loadActivities()
+        setEditingActivity(null)
+        setIsModalOpen(false)
+      } else {
+        alert(result.error ?? 'No se pudo actualizar la actividad')
+      }
+    } else {
+      const result = await actividadesService.createActividad(payload as Omit<ActividadApi, 'id'>)
+      setIsSavingActivity(false)
+      if (result.ok) {
+        await loadActivities()
+        setIsModalOpen(false)
+      } else {
+        alert(result.error ?? 'No se pudo crear la actividad')
+      }
+    }
+
+    setFormData({ title: '', description: '', date: '', type: 'project', status: 'Planeado', proyectoId: '', claseId: '' })
   }
 
-  const getStatusInfo = (status: Activity['status']) => {
-    return statusOptions.find((s) => s.value === status) || statusOptions[0]
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    if (!user?.id) return
+
+    if (id.startsWith('api-')) {
+      const apiId = Number(id.replace('api-', ''))
+      const result = await actividadesService.updateActividad(apiId, { estado: newStatus })
+      if (result.ok) {
+        setActivitiesApi((prev) =>
+          prev.map((a) => (a.id === apiId ? { ...a, estado: newStatus } : a))
+        )
+      }
+      return
+    }
+
+    userService.updateActivity(id, { status: newStatus as Activity['status'] })
+    setActivitiesLocal(userService.getActivities(user.id))
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!user?.id) return
+
+    if (!confirm('¿Estás seguro de eliminar esta actividad?')) return
+
+    if (id.startsWith('api-')) {
+      const apiId = Number(id.replace('api-', ''))
+      const result = await actividadesService.deleteActividad(apiId)
+      if (result.ok) {
+        await loadActivities()
+      } else {
+        alert(result.error ?? 'No se pudo eliminar la actividad')
+      }
+      return
+    }
+
+    userService.deleteActivity(id)
+    setActivitiesLocal(userService.getActivities(user.id))
+  }
+
+  const getStatusInfo = (status: string) => {
+    return (
+      statusOptions.find((s) => s.value === status) || {
+        label: status,
+        icon: CheckCircle,
+        color: 'text-muted-foreground',
+        bg: 'bg-secondary/10',
+      }
+    )
   }
 
   return (
@@ -120,17 +216,32 @@ export default function Activities() {
       </div>
 
       {/* Activities List */}
-      {filteredActivities.length > 0 ? (
+      {isLoadingApi ? (
+        <Card variant="bordered">
+          <CardContent className="py-12 text-center">
+            <div className="text-muted-foreground">Cargando actividades...</div>
+          </CardContent>
+        </Card>
+      ) : filteredActivities.length > 0 ? (
         <div className="flex flex-col gap-4">
           {filteredActivities.map((activity) => {
             const statusInfo = getStatusInfo(activity.status)
             const StatusIcon = statusInfo.icon
 
             return (
-              <Card key={activity.id} variant="bordered" className="group hover:border-primary/50 transition-colors">
+              <Card
+                key={activity.id}
+                variant="bordered"
+                className="group hover:border-primary/50 transition-colors"
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
-                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', statusInfo.bg)}>
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
+                        statusInfo.bg
+                      )}
+                    >
                       <StatusIcon className={cn('w-5 h-5', statusInfo.color)} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -138,22 +249,51 @@ export default function Activities() {
                         <div>
                           <h3 className="font-semibold text-foreground">{activity.title}</h3>
                           <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <span className={cn('inline-block px-2 py-0.5 text-xs rounded-full', statusInfo.bg, statusInfo.color)}>
+                            <span
+                              className={cn(
+                                'inline-block px-2 py-0.5 text-xs rounded-full',
+                                statusInfo.bg,
+                                statusInfo.color
+                              )}
+                            >
                               {statusInfo.label}
                             </span>
-                            <span className="text-xs text-muted-foreground capitalize">{activity.type}</span>
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {activity.type}
+                            </span>
                             <span className="text-xs text-muted-foreground">
                               {formatDate(activity.date)}
                             </span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleDelete(activity.id)}
-                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
-                          aria-label="Eliminar actividad"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingActivity(activity)
+                              setFormData({
+                                title: activity.title,
+                                description: activity.description,
+                                date: activity.date,
+                                type: activity.type,
+                                status: activity.status,
+                                proyectoId: String(activity.proyectoId ?? ''),
+                                claseId: String(activity.claseId ?? ''),
+                              })
+                              setIsModalOpen(true)
+                            }}
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary/10 transition-all"
+                            aria-label="Editar actividad"
+                          >
+                            <Edit className="w-4 h-4 text-primary" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(activity.id)}
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
+                            aria-label="Eliminar actividad"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </button>
+                        </div>
                       </div>
                       {activity.description && (
                         <p className="mt-2 text-sm text-muted-foreground">{activity.description}</p>
@@ -162,10 +302,10 @@ export default function Activities() {
                         {statusOptions.map((status) => (
                           <button
                             key={status.value}
-                            onClick={() => handleStatusChange(activity.id, status.value)}
+                            onClick={() => handleStatusChange(activity.id, status.value as string)}
                             className={cn(
                               'px-2 py-1 text-xs rounded-lg transition-colors',
-                              activity.status === status.value
+                              (activity.status as string) === (status.value as string)
                                 ? `${status.bg} ${status.color}`
                                 : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                             )}
@@ -193,23 +333,42 @@ export default function Activities() {
             <h3 className="text-lg font-medium text-foreground mb-2">
               {filterStatus ? 'No hay actividades con este estado' : 'Registra tus actividades'}
             </h3>
-            <p className="text-muted-foreground mb-4">
-              Organiza tus proyectos, cursos y eventos academicos
-            </p>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="w-4 h-4" />
-              Agregar primera actividad
-            </Button>
+            <p className="text-muted-foreground mb-4">Organiza tus proyectos, cursos y eventos académicos</p>
+            <Button
+            onClick={() => {
+              setEditingActivity(null)
+              setFormData({
+                title: '',
+                description: '',
+                date: '',
+                type: 'project',
+                status: 'Planeado',
+                proyectoId: '',
+                claseId: '',
+              })
+              setIsModalOpen(true)
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            Agregar primera actividad
+          </Button>
           </CardContent>
         </Card>
       )}
 
       {/* Create Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nueva Actividad">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingActivity(null)
+        }}
+        title={editingActivity ? 'Editar Actividad' : 'Nueva Actividad'}
+      >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             label="Titulo"
-            placeholder="Ej: Proyecto de investigacion"
+            placeholder="Ej: Proyecto de investigación"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
@@ -250,7 +409,7 @@ export default function Activities() {
               <label className="text-sm font-medium text-foreground">Estado</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as Activity['status'] })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {statusOptions.map((status) => (
@@ -269,12 +428,29 @@ export default function Activities() {
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           />
 
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Proyecto ID"
+              type="number"
+              value={formData.proyectoId}
+              onChange={(e) => setFormData({ ...formData, proyectoId: e.target.value })}
+              placeholder="ID del proyecto"
+            />
+            <Input
+              label="Clase ID"
+              type="number"
+              value={formData.claseId}
+              onChange={(e) => setFormData({ ...formData, claseId: e.target.value })}
+              placeholder="ID de la clase"
+            />
+          </div>
+
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Crear Actividad
+            <Button type="submit" isLoading={isSavingActivity} className="flex-1">
+              {editingActivity ? 'Actualizar Actividad' : 'Crear Actividad'}
             </Button>
           </div>
         </form>

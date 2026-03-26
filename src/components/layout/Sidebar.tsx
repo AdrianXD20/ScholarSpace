@@ -11,6 +11,7 @@ import {
   iconLogros,
   iconActividades,
   iconPerfil,
+  iconPortfolio,
   iconLogout,
 } from '../../assets/Icons'
 
@@ -26,6 +27,7 @@ type NavItem =
 const baseNav: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', src: iconDashboard, alt: 'Dashboard' },
   { to: '/dashboard/notes', label: 'Apuntes', src: iconApuntes, alt: 'Apuntes' },
+  { to: '/dashboard/projects', label: 'Proyecto', src: iconPortfolio, alt: 'Proyecto' },
   { to: '/dashboard/achievements', label: 'Logros', src: iconLogros, alt: 'Logros' },
   { to: '/dashboard/activities', label: 'Actividades', src: iconActividades, alt: 'Actividades' },
   { to: '/dashboard/profile', label: 'Perfil', src: iconPerfil, alt: 'Perfil' },

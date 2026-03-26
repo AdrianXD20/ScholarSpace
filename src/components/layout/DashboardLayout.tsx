@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/achievements': 'Mis Logros',
   '/dashboard/activities': 'Actividades',
   '/dashboard/profile': 'Mi Perfil',
+  '/dashboard/clases': 'Clases disponibles',
 }
 
 export default function DashboardLayout() {

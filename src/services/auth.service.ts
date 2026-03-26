@@ -16,34 +16,47 @@ type StoredUser = User & { password: string; role?: UserRole }
 
 /** Contrato esperado del backend (ajusta nombres de campos si tu API difiere) */
 interface LoginApiResponse {
-  user: ApiUserPayload
-  accessToken: string
+  JWT?: string
+  accessToken?: string
   refreshToken?: string
   expiresIn?: number
+  user: ApiUserPayload
+}
+
+interface RegisterApiResponse {
+  id: string
+  rol: string
+  nombre: string
+  email: string
+  password: string
+  foto_perfil: string | null
 }
 
 interface ApiUserPayload {
   id: string
-  name: string
+  name?: string
+  nombre?: string
   email: string
   avatar?: string
+  foto_perfil?: string | null
   bio?: string
   institution?: string
   career?: string
   createdAt: string
   role?: UserRole
+  rol?: string
   permissions?: User['permissions']
   perfilDocente?: User['perfilDocente']
   claseIds?: string[]
 }
 
 function mapApiUser(p: ApiUserPayload): User {
-  const role: UserRole = p.role ?? 'student'
+  const role: UserRole = p.role ?? (p.rol === 'USER' ? 'student' : 'student')
   const user: User = {
     id: p.id,
-    name: p.name,
+    name: p.name ?? p.nombre ?? '',
     email: p.email,
-    avatar: p.avatar,
+    avatar: p.avatar ?? (p.foto_perfil || undefined),
     bio: p.bio,
     institution: p.institution,
     career: p.career,
@@ -103,14 +116,19 @@ export const authService = {
     }
 
     try {
+      const loginBody = {
+        email: credentials.email,
+        password: credentials.password,
+        'contraseña': credentials.password,
+      }
       const data = await httpClient<LoginApiResponse>(endpoints.auth.login, {
         method: 'POST',
-        body: credentials,
+        body: loginBody,
         skipAuth: true,
       })
       const user = normalizeUser(mapApiUser(data.user))
       const tokens: AuthTokens = {
-        accessToken: data.accessToken,
+        accessToken: data.JWT || data.accessToken || '',
         refreshToken: data.refreshToken,
       }
       persistUserSession(user, tokens)
@@ -195,18 +213,31 @@ export const authService = {
     }
 
     try {
-      const res = await httpClient<LoginApiResponse>(endpoints.auth.register, {
+      const apiPayload = {
+        rol: "USER",
+        nombre: payload.name,
+        email: payload.email,
+        password: payload.password,
+        foto_perfil: null
+      }
+      const res = await httpClient<RegisterApiResponse>(endpoints.auth.register, {
         method: 'POST',
-        body: payload,
+        body: apiPayload,
         skipAuth: true,
       })
-      const user = normalizeUser(mapApiUser(res.user))
-      const tokens: AuthTokens = {
-        accessToken: res.accessToken,
-        refreshToken: res.refreshToken,
+      // Map the response to ApiUserPayload format
+      const apiUser: ApiUserPayload = {
+        id: res.id,
+        nombre: res.nombre,
+        email: res.email,
+        foto_perfil: res.foto_perfil,
+        rol: res.rol,
+        createdAt: new Date().toISOString(), // Assuming created now
       }
-      persistUserSession(user, tokens)
-      return { ok: true, user, tokens }
+      const user = normalizeUser(mapApiUser(apiUser))
+      // No tokens returned, so no session persistence
+      // User needs to login after registration
+      return { ok: true, user }
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'No se pudo registrar.'
       return { ok: false, error: msg, code: e instanceof ApiError ? String(e.status) : 'NETWORK' }
