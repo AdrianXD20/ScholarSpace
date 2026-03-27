@@ -45,7 +45,6 @@ export default function Activities() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    date: '',
     type: 'project' as Activity['type'],
     status: 'Planeado' as string,
     proyectoId: '',
@@ -106,7 +105,7 @@ export default function Activities() {
     const payload = {
       titulo: formData.title.trim(),
       descripcion: formData.description.trim(),
-      fecha: formData.date || new Date().toISOString(),
+      fecha: editingActivity?.date || new Date().toISOString(),
       estado: formData.status,
       usuario_id: Number(user.id),
       proyecto_id: formData.proyectoId ? Number(formData.proyectoId) : undefined,
@@ -134,7 +133,7 @@ export default function Activities() {
       }
     }
 
-    setFormData({ title: '', description: '', date: '', type: 'project', status: 'Planeado', proyectoId: '', claseId: '' })
+    setFormData({ title: '', description: '', type: 'project', status: 'Planeado', proyectoId: '', claseId: '' })
   }
 
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -273,7 +272,6 @@ export default function Activities() {
                               setFormData({
                                 title: activity.title,
                                 description: activity.description,
-                                date: activity.date,
                                 type: activity.type,
                                 status: activity.status,
                                 proyectoId: String(activity.proyectoId ?? ''),
@@ -340,7 +338,6 @@ export default function Activities() {
               setFormData({
                 title: '',
                 description: '',
-                date: '',
                 type: 'project',
                 status: 'Planeado',
                 proyectoId: '',
@@ -420,13 +417,6 @@ export default function Activities() {
               </select>
             </div>
           </div>
-
-          <Input
-            label="Fecha"
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-          />
 
           <div className="grid grid-cols-2 gap-4">
             <Input

@@ -10,7 +10,6 @@ import {
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import ForgotPassword from '../pages/auth/ForgotPassword'
-import VerifyToken from '../pages/auth/VerifyToken'
 import ResetPassword from '../pages/auth/ResetPassword'
 import Unauthorized from '../pages/Unauthorized'
 
@@ -64,7 +63,7 @@ export default function AppRouter() {
           path="/verify-token"
           element={
             <PublicRoute>
-              <VerifyToken />
+              <Navigate to="/forgot-password?step=token" replace />
             </PublicRoute>
           }
         />

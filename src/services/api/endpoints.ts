@@ -5,10 +5,11 @@ export const endpoints = {
     register: '/register',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
-    forgotPassword: '/auth/forgot-password',
-    resetPassword: '/auth/reset-password',
-    /** Endpoint de tu API para restablecer contraseña */
+    forgotPassword: '/recuperar',
     resetear: '/resetear',
+    resetPassword: '/auth/reset-password',
+    verifyResetToken: '/auth/verify-reset-token',
+    checkEmail: '/auth/check-email',
   },
   usuario: {
     profile: (id: string | number) => `/usuario/${id}`,

@@ -123,9 +123,7 @@ export const authService = {
       const role = found.role ?? inferMockRole(found.email)
       const { password: _, ...rest } = found
       const user: User = normalizeUser({ ...rest, role })
-      const fakeToken = `mock.${user.id}.${Date.now()}`
-      persistUserSession(user, { accessToken: fakeToken })
-      return { ok: true, user, tokens: { accessToken: fakeToken } }
+      return { ok: true, user }
     }
 
     try {
@@ -287,6 +285,33 @@ export const authService = {
     }
   },
 
+  async verifyResetToken(token: string): Promise<{ ok: boolean; error?: string }> {
+    if (env.useMockAuth) {
+      await new Promise((r) => setTimeout(r, 250))
+      const tokens = JSON.parse(localStorage.getItem(RESET_TOKENS_KEY) || '{}') as Record<
+        string,
+        string
+      >
+      return tokens[token] ? { ok: true } : { ok: false, error: 'Código inválido o expirado.' }
+    }
+    try {
+      await httpClient(endpoints.auth.verifyResetToken, {
+        method: 'POST',
+        body: { token },
+        skipAuth: true,
+      })
+      return { ok: true }
+    } catch (e) {
+      // Si el backend no expone este endpoint (404), dejamos que la validación
+      // ocurra en el endpoint final de cambio de contraseña.
+      if (e instanceof ApiError && e.status === 404) {
+        return { ok: true }
+      }
+      const msg = e instanceof ApiError ? e.message : 'No se pudo verificar el código.'
+      return { ok: false, error: msg }
+    }
+  },
+
   async resetPassword(token: string, newPassword: string): Promise<{ ok: boolean; error?: string }> {
     if (env.useMockAuth) {
       await new Promise((r) => setTimeout(r, 500))
@@ -308,40 +333,50 @@ export const authService = {
       return { ok: true }
     }
     try {
-      await httpClient(endpoints.auth.resetear, {
-        method: 'POST',
-        body: { token, nuevaContraseña: newPassword },
-        skipAuth: true,
-      })
-      return { ok: true }
+      const body = { token, nuevaContraseña: newPassword }
+      try {
+        await httpClient(endpoints.auth.resetear, {
+          method: 'POST',
+          body,
+          skipAuth: true,
+        })
+        return { ok: true }
+      } catch {
+        await httpClient(endpoints.auth.resetPassword, {
+          method: 'POST',
+          body,
+          skipAuth: true,
+        })
+        return { ok: true }
+      }
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'No se pudo restablecer la contraseña.'
       return { ok: false, error: msg }
     }
   },
 
-  async verifyResetToken(token: string): Promise<{ ok: boolean; error?: string }> {
+  async checkEmailExists(email: string): Promise<{ ok: boolean; exists?: boolean; error?: string }> {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) return { ok: true, exists: false }
+
     if (env.useMockAuth) {
-      await new Promise((r) => setTimeout(r, 300))
-      const tokens = JSON.parse(localStorage.getItem(RESET_TOKENS_KEY) || '{}') as Record<
-        string,
-        string
-      >
-      const email = tokens[token]
-      if (!email) {
-        return { ok: false, error: 'Token inválido o expirado.' }
-      }
-      return { ok: true }
+      await new Promise((r) => setTimeout(r, 250))
+      const users = readUsers()
+      return { ok: true, exists: users.some((u) => u.email.toLowerCase() === normalized) }
     }
+
     try {
-      // Para el backend real, por ahora solo validamos formato básico
-      // La validación real se hace en resetPassword
-      if (!token || token.trim().length < 10) {
-        return { ok: false, error: 'Token inválido.' }
-      }
-      return { ok: true }
+      const data = await httpClient<{ exists: boolean }>(`${endpoints.auth.checkEmail}?email=${encodeURIComponent(normalized)}`, {
+        method: 'GET',
+        skipAuth: true,
+      })
+      return { ok: true, exists: Boolean(data.exists) }
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'Token inválido o expirado.'
+      // Endpoint opcional: si no existe, no bloqueamos el registro por UX.
+      if (e instanceof ApiError && e.status === 404) {
+        return { ok: true, exists: false }
+      }
+      const msg = e instanceof ApiError ? e.message : 'No se pudo validar el correo.'
       return { ok: false, error: msg }
     }
   },

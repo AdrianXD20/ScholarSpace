@@ -24,7 +24,6 @@ export default function Notes() {
   const [formData, setFormData] = useState({
     titulo: '',
     contenido: '',
-    fecha: '',
     proyectoId: '' as number | '',
   })
 
@@ -81,7 +80,6 @@ export default function Notes() {
     setFormData({
       titulo: '',
       contenido: '',
-      fecha: '',
       proyectoId: projects[0]?.id ?? '',
     })
     setIsModalOpen(true)
@@ -92,7 +90,6 @@ export default function Notes() {
     setFormData({
       titulo: note.titulo,
       contenido: note.contenido,
-      fecha: note.fecha,
       proyectoId: note.proyecto_id,
     })
     setIsModalOpen(true)
@@ -109,7 +106,7 @@ export default function Notes() {
     const payload = {
       titulo: formData.titulo.trim(),
       contenido: formData.contenido.trim(),
-      fecha: formData.fecha || new Date().toISOString().slice(0, 10),
+      fecha: editingNote?.fecha || new Date().toISOString().slice(0, 10),
       usuario_id: Number(user.id),
       proyecto_id: Number(formData.proyectoId),
     }
@@ -292,13 +289,6 @@ export default function Notes() {
               </p>
             )}
           </div>
-
-          <Input
-            label="Fecha"
-            type="date"
-            value={formData.fecha}
-            onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-          />
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">

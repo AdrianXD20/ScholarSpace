@@ -10,10 +10,12 @@ import { useAuth } from '../../hooks/useAuth'
 import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
 import { usuarioService } from '../../services/usuario.service'
+import { authService } from '../../services/auth.service'
 import UserAvatar from '../../components/common/UserAvatar'
 import { formatDate, cn } from '../../utils/helpers'
 import { iconApuntes, iconLogros, iconActividades } from '../../assets/Icons'
 import type { UsuarioData } from '../../services/usuario.service'
+import { getPasswordChecklist, isPasswordValid } from '../../utils/authValidation'
 
 const ROLE_LABEL = {
   student: 'Estudiante',
@@ -39,9 +41,17 @@ export default function Profile() {
   })
 
   const [passwordForm, setPasswordForm] = useState({
+    token: '',
     password: '',
     confirmPassword: '',
   })
+  const [passwordError, setPasswordError] = useState('')
+  const [isSendingToken, setIsSendingToken] = useState(false)
+  const checklist = getPasswordChecklist(passwordForm.password)
+  const passwordOk = isPasswordValid(passwordForm.password)
+  const confirmOk =
+    passwordForm.confirmPassword.length > 0 &&
+    passwordForm.password === passwordForm.confirmPassword
 
   const [stats, setStats] = useState({ notes: 0, achievements: 0, activities: 0 })
 
@@ -101,30 +111,38 @@ export default function Profile() {
 
   const handlePasswordChangeSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    setPasswordError('')
     if (!user?.id) return
-    
-    if (passwordForm.password !== passwordForm.confirmPassword) {
-      alert('Las contraseñas no coinciden')
+
+    if (!passwordForm.token.trim()) {
+      setPasswordError('Debes ingresar el código de verificación.')
       return
     }
-    
-    if (passwordForm.password.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres')
+    if (!passwordOk) {
+      setPasswordError('Contraseña inválida: no cumple con los requisitos.')
+      return
+    }
+    if (!confirmOk) {
+      setPasswordError('Las contraseñas no coinciden.')
       return
     }
 
     setIsSaving(true)
-    const result = await usuarioService.updateProfile(user.id, {
-      password: passwordForm.password,
-    })
+    const verify = await authService.verifyResetToken(passwordForm.token.trim())
+    if (!verify.ok) {
+      setIsSaving(false)
+      setPasswordError(verify.error ?? 'Código inválido o expirado.')
+      return
+    }
+    const result = await authService.resetPassword(passwordForm.token.trim(), passwordForm.password)
     setIsSaving(false)
 
     if (result.ok) {
       alert('Contraseña actualizada correctamente')
       setShowPasswordModal(false)
-      setPasswordForm({ password: '', confirmPassword: '' })
+      setPasswordForm({ token: '', password: '', confirmPassword: '' })
     } else {
-      alert(result.error ?? 'No se pudo actualizar la contraseña')
+      setPasswordError(result.error ?? 'No se pudo actualizar la contraseña')
     }
   }
 
@@ -347,6 +365,37 @@ export default function Profile() {
       {/* Change Password Modal */}
       <Modal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} title="Cambiar Contraseña">
         <form onSubmit={handlePasswordChangeSubmit} className="flex flex-col gap-4">
+          {passwordError && (
+            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{passwordError}</div>
+          )}
+          <div className="flex gap-2">
+            <Input
+              label="Código de verificación"
+              placeholder="Ingresa el token/OTP"
+              value={passwordForm.token}
+              onChange={(e) => setPasswordForm({ ...passwordForm, token: e.target.value })}
+              required
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="self-end"
+              isLoading={isSendingToken}
+              onClick={async () => {
+                if (!user?.email) return
+                setIsSendingToken(true)
+                const res = await authService.requestPasswordReset(user.email)
+                setIsSendingToken(false)
+                if (res.ok) {
+                  alert('Te enviamos un código de verificación al correo.')
+                } else {
+                  setPasswordError(res.error ?? 'No se pudo enviar el código.')
+                }
+              }}
+            >
+              Enviar código
+            </Button>
+          </div>
           <Input
             label="Nueva Contraseña"
             type="password"
@@ -354,7 +403,30 @@ export default function Profile() {
             value={passwordForm.password}
             onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
             required
+            className={passwordOk ? 'border-green-500 focus:ring-green-500' : ''}
+            error={
+              passwordForm.password.length > 0 && !passwordOk
+                ? 'Contraseña inválida: no cumple con los requisitos.'
+                : undefined
+            }
           />
+          {passwordForm.password.length > 0 && (
+            <div className="rounded-lg border border-border p-3 text-sm space-y-1.5">
+              <p className={checklist.hasSpecial ? 'text-green-600' : 'text-muted-foreground'}>
+                {checklist.hasSpecial ? '✔' : '✖'} Contiene al menos un carácter especial.
+              </p>
+              <p className={checklist.hasNumber ? 'text-green-600' : 'text-muted-foreground'}>
+                {checklist.hasNumber ? '✔' : '✖'} Contiene al menos un número.
+              </p>
+              <p className={checklist.hasUppercase ? 'text-green-600' : 'text-muted-foreground'}>
+                {checklist.hasUppercase ? '✔' : '✖'} Contiene al menos una letra mayúscula.
+              </p>
+              <p className={checklist.minLength ? 'text-green-600' : 'text-muted-foreground'}>
+                {checklist.minLength ? '✔' : '✖'} Cumple longitud mínima (≥ 8).
+              </p>
+              {passwordOk && <p className="text-green-600 font-medium">Contraseña válida.</p>}
+            </div>
+          )}
           <Input
             label="Confirmar Contraseña"
             type="password"
@@ -362,7 +434,17 @@ export default function Profile() {
             value={passwordForm.confirmPassword}
             onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
             required
+            error={
+              passwordForm.confirmPassword.length > 0 && !confirmOk
+                ? 'Las contraseñas no coinciden.'
+                : undefined
+            }
           />
+          {passwordForm.confirmPassword.length > 0 && (
+            <p className={`text-sm ${confirmOk ? 'text-green-600' : 'text-destructive'}`}>
+              {confirmOk ? '✔ Coinciden' : '✖ No coinciden'}
+            </p>
+          )}
           <div className="flex gap-3 pt-2">
             <Button
               type="button"

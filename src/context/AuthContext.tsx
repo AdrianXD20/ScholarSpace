@@ -85,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authService.register(data)
       if (result.ok) {
-        setUser(result.user)
         return { ok: true, user: result.user }
       }
       return { ok: false, error: result.error }

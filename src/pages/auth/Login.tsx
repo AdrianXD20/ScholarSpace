@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import { useAuth } from '../../hooks/useAuth'
 import { defaultHomePath } from '../../routes/guards'
+import { AUTH_LIMITS, isValidEmail } from '../../utils/authValidation'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -18,9 +19,11 @@ export default function Login() {
   const [info, setInfo] = useState('')
 
   useEffect(() => {
-    const st = location.state as { resetOk?: boolean } | null
+    const st = location.state as { resetOk?: boolean; registeredOk?: boolean } | null
     if (st?.resetOk) {
       setInfo('Contraseña actualizada. Inicia sesión con tu nueva clave.')
+    } else if (st?.registeredOk) {
+      setInfo('Cuenta creada correctamente. Inicia sesión con tus credenciales.')
     }
   }, [location.state])
 
@@ -31,6 +34,14 @@ export default function Login() {
 
     if (!email || !password) {
       setError('Por favor completa todos los campos')
+      return
+    }
+    if (!isValidEmail(email) || email.trim().length > AUTH_LIMITS.email.max) {
+      setError('Correo inválido: debe incluir "@" y un formato válido.')
+      return
+    }
+    if (password.length < AUTH_LIMITS.password.min || password.length > AUTH_LIMITS.password.max) {
+      setError(`La contraseña debe tener entre ${AUTH_LIMITS.password.min} y ${AUTH_LIMITS.password.max} caracteres.`)
       return
     }
 
@@ -78,6 +89,13 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   aria-label="Correo electronico"
+                  minLength={AUTH_LIMITS.email.min}
+                  maxLength={AUTH_LIMITS.email.max}
+                  error={
+                    email.length > 0 && !isValidEmail(email)
+                      ? 'Correo inválido: debe incluir "@".'
+                      : undefined
+                  }
                 />
               </div>
 
@@ -90,6 +108,15 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
                   aria-label="Contraseña"
+                  minLength={AUTH_LIMITS.password.min}
+                  maxLength={AUTH_LIMITS.password.max}
+                  error={
+                    password.length > 0 &&
+                    (password.length < AUTH_LIMITS.password.min ||
+                      password.length > AUTH_LIMITS.password.max)
+                      ? `Debe tener entre ${AUTH_LIMITS.password.min} y ${AUTH_LIMITS.password.max} caracteres.`
+                      : undefined
+                  }
                 />
               </div>
 

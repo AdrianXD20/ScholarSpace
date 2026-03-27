@@ -57,7 +57,6 @@ export default function Achievements() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    date: '',
     category: 'academic' as Achievement['category'],
     proyectoId: '' as number | '',
   })
@@ -127,7 +126,7 @@ export default function Achievements() {
 
     const usuario_id = Number(user.id)
     const proyecto_id = Number(formData.proyectoId)
-    const fecha = formData.date ? formData.date : new Date().toISOString().slice(0, 10)
+    const fecha = new Date().toISOString().slice(0, 10)
 
     const payload = {
       titulo: formData.title.trim(),
@@ -160,7 +159,7 @@ export default function Achievements() {
 
       loadAchievements()
       setIsModalOpen(false)
-      setFormData({ title: '', description: '', date: '', category: 'academic', proyectoId: '' })
+      setFormData({ title: '', description: '', category: 'academic', proyectoId: '' })
     } finally {
       setIsSubmitting(false)
     }
@@ -354,13 +353,6 @@ export default function Achievements() {
               </p>
             )}
           </div>
-
-          <Input
-            label="Fecha"
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-          />
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
