@@ -1,0 +1,148 @@
+/* Paleta estilo cuaderno / scrapbook (referencia visual tipo Fumayo) */
+:root {
+  --sketch-paper: #fdfbf6;
+  --sketch-ink: #000000;
+  --sketch-green: #7dc280;
+  --sketch-yellow: #fff08a;
+  --sketch-red: #ff7b7b;
+  --sketch-blue: #96c3e0;
+  --sketch-line: rgba(150, 195, 224, 0.45);
+  --sketch-margin: rgba(255, 123, 123, 0.4);
+}
+
+.auth-notebook-bg {
+  min-height: 100vh;
+  background-color: var(--sketch-paper);
+  /* Líneas horizontales + margen vertical rosa */
+  background-image:
+    linear-gradient(transparent 22px, var(--sketch-line) 23px),
+    linear-gradient(90deg, transparent 47px, var(--sketch-margin) 48px, transparent 49px);
+  background-size:
+    100% 24px,
+    100% 100%;
+  background-position: 0 8px;
+}
+
+.auth-notebook-bg .lucide {
+  color: var(--sketch-ink);
+}
+
+.auth-sketch-panel {
+  background: #ffffff;
+  border: 2px solid var(--sketch-ink);
+  box-shadow: 5px 5px 0 var(--sketch-ink);
+  border-radius: 0;
+}
+
+.auth-sketch-tag {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border: 2px solid var(--sketch-ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-sketch-title {
+  color: var(--sketch-ink);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.auth-sketch-highlighter {
+  background: var(--sketch-yellow);
+  padding: 0.1em 0.25em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.auth-sketch-input {
+  border-radius: 0 !important;
+  border: 2px solid var(--sketch-ink) !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.auth-sketch-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sketch-blue) !important;
+}
+
+.auth-sketch-btn {
+  border-radius: 0 !important;
+  border: 2px solid var(--sketch-ink) !important;
+  background: var(--sketch-green) !important;
+  color: var(--sketch-ink) !important;
+  font-weight: 800 !important;
+  box-shadow: 4px 4px 0 var(--sketch-ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.auth-sketch-btn:hover:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0 var(--sketch-ink);
+}
+
+.auth-sketch-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--sketch-ink);
+}
+
+.auth-sketch-btn-outline {
+  border-radius: 0 !important;
+  border: 2px solid var(--sketch-ink) !important;
+  background: #fff !important;
+  color: var(--sketch-ink) !important;
+  font-weight: 700 !important;
+}
+
+.auth-sketch-alert-error {
+  border: 2px solid var(--sketch-ink);
+  background: var(--sketch-red);
+  color: var(--sketch-ink);
+  border-radius: 0;
+}
+
+.auth-sketch-alert-ok {
+  border: 2px solid var(--sketch-ink);
+  background: var(--sketch-yellow);
+  color: var(--sketch-ink);
+  border-radius: 0;
+}
+
+.auth-sketch-checklist {
+  border: 2px solid var(--sketch-ink);
+  border-radius: 0;
+  background: #fff;
+}
+
+.auth-sketch-step {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--sketch-ink);
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+
+.auth-sketch-step-active {
+  background: var(--sketch-green);
+}
+
+.auth-sketch-step-done {
+  background: var(--sketch-yellow);
+}
+
+.auth-sketch-link {
+  color: var(--sketch-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+}
+
+.auth-sketch-link:hover {
+  color: var(--sketch-red);
+}

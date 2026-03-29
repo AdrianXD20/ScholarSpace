@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  BookOpen,
   Mail,
   Lock,
   User,
@@ -16,7 +15,7 @@ import {
 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
+import AuthNotebookLayout from '../../components/auth/AuthNotebookLayout'
 import { useAuth } from '../../hooks/useAuth'
 import { authService } from '../../services/auth.service'
 import type { AccountType } from '../../types/user.types'
@@ -160,68 +159,59 @@ export default function Register() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <BookOpen className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Crear cuenta</h1>
-          <p className="text-muted-foreground mt-2">
-            Estudiante o docente: elige tu perfil y completa los datos
-          </p>
+    <AuthNotebookLayout
+      hero="book"
+      tag="Nuevo usuario"
+      tagClassName="bg-[var(--sketch-green)]"
+      title={
+        <>
+          <span className="text-[var(--sketch-blue)]">Crear</span>{' '}
+          <span className="auth-sketch-highlighter">cuenta</span>
+        </>
+      }
+      subtitle="Estudiante o docente: elige tu perfil y completa los datos"
+    >
+      <div className="space-y-1 mb-6">
+        <h2 className="text-xl font-black text-[var(--sketch-ink)] uppercase tracking-wide">Registro</h2>
+        <p className="text-sm text-[var(--sketch-ink)]/75">
+          Los docentes deben indicar titulación y experiencia para validar su perfil.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {error && <div className="p-3 text-sm font-medium auth-sketch-alert-error">{error}</div>}
+
+        <div className="grid grid-cols-2 gap-0 border-2 border-[var(--sketch-ink)]">
+          <button
+            type="button"
+            onClick={() => setAccountType('student')}
+            className={`flex items-center justify-center gap-2 py-3 text-sm font-black uppercase tracking-wide border-r-2 border-[var(--sketch-ink)] transition-colors ${
+              accountType === 'student' ? 'bg-[var(--sketch-green)]' : 'bg-white hover:bg-[var(--sketch-yellow)]/40'
+            }`}
+          >
+            <School className="w-4 h-4" />
+            Estudiante
+          </button>
+          <button
+            type="button"
+            onClick={() => setAccountType('teacher')}
+            className={`flex items-center justify-center gap-2 py-3 text-sm font-black uppercase tracking-wide transition-colors ${
+              accountType === 'teacher' ? 'bg-[var(--sketch-green)]' : 'bg-white hover:bg-[var(--sketch-yellow)]/40'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            Docente
+          </button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Registro</CardTitle>
-            <CardDescription>
-              Los docentes deben indicar titulación y experiencia para validar su perfil.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-secondary/50">
-                <button
-                  type="button"
-                  onClick={() => setAccountType('student')}
-                  className={`flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                    accountType === 'student'
-                      ? 'bg-card shadow text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <School className="w-4 h-4" />
-                  Estudiante
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountType('teacher')}
-                  className={`flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                    accountType === 'teacher'
-                      ? 'bg-card shadow text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Award className="w-4 h-4" />
-                  Docente
-                </button>
-              </div>
-
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                 <Input
                   name="name"
                   placeholder="Nombre completo *"
                   value={formData.name}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-10 auth-sketch-input"
                   aria-label="Nombre completo"
                   minLength={AUTH_LIMITS.name.min}
                   maxLength={AUTH_LIMITS.name.max}
@@ -235,34 +225,34 @@ export default function Register() {
                 />
               </div>
 
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                 <Input
                   name="email"
                   type="email"
                   placeholder="tu@email.com *"
                   value={formData.email}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-10 auth-sketch-input"
                   aria-label="Correo electronico"
                   minLength={AUTH_LIMITS.email.min}
                   maxLength={AUTH_LIMITS.email.max}
                   error={emailError || undefined}
                 />
               </div>
-              {isCheckingEmail && (
-                <p className="text-xs text-muted-foreground -mt-2">Validando correo en servidor...</p>
+        {isCheckingEmail && (
+                <p className="text-xs font-medium text-[var(--sketch-ink)]/70 -mt-2">Validando correo en servidor...</p>
               )}
 
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                 <Input
                   name="password"
                   type="password"
                   placeholder="Contraseña *"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`pl-10 ${passwordOk ? 'border-green-500 focus:ring-green-500' : ''}`}
+                  className={`pl-10 auth-sketch-input ${passwordOk ? '!border-[var(--sketch-green)]' : ''}`}
                   aria-label="Contraseña"
                   minLength={AUTH_LIMITS.password.min}
                   maxLength={AUTH_LIMITS.password.max}
@@ -273,33 +263,37 @@ export default function Register() {
                   }
                 />
               </div>
-              {formData.password.length > 0 && (
-                <div className="rounded-lg border border-border p-3 text-sm space-y-1.5">
-                  <p className={passwordRules.hasSpecial ? 'text-green-600' : 'text-muted-foreground'}>
-                    {passwordRules.hasSpecial ? '✔' : '✖'} Contiene al menos un carácter especial.
+        {formData.password.length > 0 && (
+                <div className="auth-sketch-checklist p-3 text-sm space-y-1.5">
+                  <p className={passwordRules.hasSpecial ? 'font-bold text-[var(--sketch-ink)]' : 'text-[var(--sketch-ink)]/60'}>
+                    {passwordRules.hasSpecial ? '✔' : '○'} Contiene al menos un carácter especial.
                   </p>
-                  <p className={passwordRules.hasNumber ? 'text-green-600' : 'text-muted-foreground'}>
-                    {passwordRules.hasNumber ? '✔' : '✖'} Contiene al menos un número.
+                  <p className={passwordRules.hasNumber ? 'font-bold text-[var(--sketch-ink)]' : 'text-[var(--sketch-ink)]/60'}>
+                    {passwordRules.hasNumber ? '✔' : '○'} Contiene al menos un número.
                   </p>
-                  <p className={passwordRules.hasUppercase ? 'text-green-600' : 'text-muted-foreground'}>
-                    {passwordRules.hasUppercase ? '✔' : '✖'} Contiene al menos una letra mayúscula.
+                  <p className={passwordRules.hasUppercase ? 'font-bold text-[var(--sketch-ink)]' : 'text-[var(--sketch-ink)]/60'}>
+                    {passwordRules.hasUppercase ? '✔' : '○'} Contiene al menos una letra mayúscula.
                   </p>
-                  <p className={passwordRules.minLength ? 'text-green-600' : 'text-muted-foreground'}>
-                    {passwordRules.minLength ? '✔' : '✖'} Cumple longitud mínima (≥ 8).
+                  <p className={passwordRules.minLength ? 'font-bold text-[var(--sketch-ink)]' : 'text-[var(--sketch-ink)]/60'}>
+                    {passwordRules.minLength ? '✔' : '○'} Cumple longitud mínima (≥ 8).
                   </p>
-                  {passwordOk && <p className="text-green-600 font-medium">Contraseña válida.</p>}
+                  {passwordOk && (
+                    <p className="font-black text-[var(--sketch-ink)]">
+                      <span className="auth-sketch-highlighter">Contraseña válida</span>
+                    </p>
+                  )}
                 </div>
               )}
 
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                 <Input
                   name="confirmPassword"
                   type="password"
                   placeholder="Confirmar contraseña *"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-10 auth-sketch-input"
                   aria-label="Confirmar contraseña"
                   error={
                     formData.confirmPassword.length > 0 && !confirmOk
@@ -308,63 +302,66 @@ export default function Register() {
                   }
                 />
               </div>
-              {formData.confirmPassword.length > 0 && (
-                <p className={`text-sm ${confirmOk ? 'text-green-600' : 'text-destructive'}`}>
+        {formData.confirmPassword.length > 0 && (
+                <p className={`text-sm font-bold ${confirmOk ? 'text-[var(--sketch-green)]' : 'text-[var(--sketch-red)]'}`}>
                   {confirmOk ? <CheckCircle2 className="inline w-4 h-4 mr-1" /> : <XCircle className="inline w-4 h-4 mr-1" />}
                   {confirmOk ? 'Coinciden' : 'No coinciden'}
                 </p>
               )}
 
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                 <Input
                   name="institution"
                   placeholder="Institución educativa (opcional)"
                   value={formData.institution}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-10 auth-sketch-input"
                   aria-label="Institucion educativa"
                 />
               </div>
 
-              <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative">
+                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                 <Input
                   name="career"
                   placeholder="Carrera o programa (opcional)"
                   value={formData.career}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-10 auth-sketch-input"
                   aria-label="Carrera o programa"
                 />
               </div>
 
-              {accountType === 'student' && (
+        {accountType === 'student' && (
                 <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                   <Input
                     name="codigoClase"
                     placeholder="Código de clase (opcional)"
                     value={formData.codigoClase}
                     onChange={handleChange}
-                    className="pl-10"
+                    className="pl-10 auth-sketch-input"
                     aria-label="Código de clase"
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5 pl-1">
+                  <p className="text-xs text-[var(--sketch-ink)]/70 mt-1.5 pl-1 font-medium">
                     Si tu profesor te dio un código, introdúcelo aquí o más tarde en tu perfil.
                   </p>
                 </div>
               )}
 
-              {accountType === 'teacher' && (
-                <div className="space-y-4 rounded-lg border border-border p-4 bg-secondary/30">
-                  <p className="text-sm font-medium text-foreground">Datos de docente</p>
+        {accountType === 'teacher' && (
+                <div className="space-y-4 border-2 border-[var(--sketch-ink)] p-4 bg-[var(--sketch-yellow)]/25">
+                  <p className="text-sm font-black text-[var(--sketch-ink)] uppercase tracking-wide">
+                    Datos de docente
+                  </p>
                   <Input
                     name="titulacionAcademica"
                     label="Titulación académica *"
                     placeholder="Ej. Lic. en Matemáticas"
                     value={formData.titulacionAcademica}
                     onChange={handleChange}
+                    className="auth-sketch-input"
                   />
                   <Input
                     name="departamento"
@@ -372,6 +369,7 @@ export default function Register() {
                     placeholder="Ej. Ciencias exactas"
                     value={formData.departamento}
                     onChange={handleChange}
+                    className="auth-sketch-input"
                   />
                   <Input
                     name="anosExperiencia"
@@ -381,6 +379,7 @@ export default function Register() {
                     placeholder="0"
                     value={formData.anosExperiencia}
                     onChange={handleChange}
+                    className="auth-sketch-input"
                   />
                   <Input
                     name="cargo"
@@ -388,29 +387,28 @@ export default function Register() {
                     placeholder="Ej. Profesor auxiliar"
                     value={formData.cargo}
                     onChange={handleChange}
+                    className="auth-sketch-input"
                   />
                 </div>
               )}
 
-              <Button
+        <Button
                 type="submit"
                 isLoading={isLoading}
-                className="w-full mt-2"
+                className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
                 disabled={emailTaken || isCheckingEmail}
               >
                 Crear cuenta
               </Button>
 
-              <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-[var(--sketch-ink)]/80">
                 ¿Ya tienes cuenta?{' '}
-                <Link to="/login" className="text-primary hover:underline font-medium">
+                <Link to="/login" className="auth-sketch-link">
                   Inicia sesión
                 </Link>
               </p>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+      </form>
+    </AuthNotebookLayout>
   )
 }
+
