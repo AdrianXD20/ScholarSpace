@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Mail, Building, GraduationCap, Save, Users, Lock } from 'lucide-react'
+import { User, Mail, Building, GraduationCap, Save, Users, Lock, Camera, Upload, X } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
+import { useToast } from '../../context/ToastContext'
 import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
 import { usuarioService } from '../../services/usuario.service'
@@ -25,12 +26,18 @@ const ROLE_LABEL = {
 
 export default function Profile() {
   const { user, updateProfile } = useAuth()
+  const toast = useToast()
   const [userData, setUserData] = useState<UsuarioData | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false)
+  
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string>('')
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -104,8 +111,68 @@ export default function Profile() {
         email: result.data.email,
       })
       setIsEditing(false)
+      toast.success('¡Perfecto!' , 'Tu perfil fue actualizado')
     } else {
-      alert(result.error ?? 'No se pudo actualizar el perfil')
+      toast.error('Error', result.error ?? 'No se pudo actualizar el perfil')
+    }
+  }
+
+  const handlePhotoSelect = (file: File | null) => {
+    if (!file) return
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Tipo inválido', 'Por favor carga una imagen (PNG, JPG, etc.)')
+      return
+    }
+
+    // Validar tamaño (máx 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning(
+        'Archivo grande',
+        `Máximo 5MB. Tu archivo: ${(file.size / 1024 / 1024).toFixed(1)}MB`
+      )
+      return
+    }
+
+    setProfilePhoto(file)
+
+    // Crear preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setPhotoPreview(e.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handlePhotoUpload = async () => {
+    if (!profilePhoto || !user?.id) return
+
+    setIsUploadingPhoto(true)
+    const toastId = toast.loading('Subiendo foto', 'Por favor espera...')
+
+    try {
+      // Aquí puedes usar tu servicio de upload
+      // const result = await userService.uploadAvatar(user.id, profilePhoto)
+      
+      // Por ahora, crear una URL local (puedes reemplazar con tu servicio real)
+      const photoUrl = photoPreview
+
+      // Simular actualización (comenta esto cuando tengas el servicio real)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      updateProfile({ avatar: photoUrl })
+
+      toast.removeToast(toastId)
+      toast.success('¡Listo!', 'Tu foto de perfil fue actualizada')
+      setShowPhotoUploadModal(false)
+      setProfilePhoto(null)
+      setPhotoPreview('')
+    } catch (error) {
+      toast.removeToast(toastId)
+      toast.error('Error', 'No se pudo subir la foto')
+    } finally {
+      setIsUploadingPhoto(false)
     }
   }
 
@@ -161,7 +228,17 @@ export default function Profile() {
       <Card variant="bordered">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <UserAvatar name={displayName} avatarUrl={user?.avatar} size="xl" />
+            <div className="relative group">
+              <UserAvatar name={displayName} avatarUrl={user?.avatar} size="xl" />
+              <button
+                onClick={() => setShowPhotoUploadModal(true)}
+                className="absolute bottom-0 right-0 p-2.5 rounded-full bg-[#7dc280] border-2 border-[#000] shadow-[2px_2px_0_rgba(0,0,0,0.12)] hover:bg-[#6bb369] transition-all text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Cambiar foto de perfil"
+                title="Cambiar foto"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-2xl font-bold text-foreground">{displayName}</h2>
               <p className="text-muted-foreground">{displayEmail}</p>
@@ -459,6 +536,91 @@ export default function Profile() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Photo Upload Modal */}
+      <Modal isOpen={showPhotoUploadModal} onClose={() => setShowPhotoUploadModal(false)} title="Cambiar Foto de Perfil">
+        <div className="flex flex-col gap-4">
+          {/* Photo Preview */}
+          {photoPreview ? (
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-32 h-32 rounded-lg border-2 border-[#000] overflow-hidden shadow-[3px_3px_0_rgba(0,0,0,0.12)]">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground text-center">
+                {profilePhoto?.name} {profilePhoto?.size ? `(${(profilePhoto.size / 1024).toFixed(1)}KB)` : ''}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 py-8 rounded-lg border-2 border-dashed border-[#000] bg-[#f8faf8]">
+              <Upload className="w-8 h-8 text-[#7dc280]" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">Arrastra tu foto aquí</p>
+                <p className="text-xs text-muted-foreground">o haz click para seleccionar</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handlePhotoSelect(e.target.files?.[0] || null)}
+                className="absolute opacity-0 cursor-pointer"
+                id="photo-input"
+              />
+            </div>
+          )}
+
+          {/* File Input */}
+          <label htmlFor="photo-input" className="block">
+            <input
+              type="file"
+              id="photo-input"
+              accept="image/*"
+              onChange={(e) => handlePhotoSelect(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+            <Button variant="outline" className="w-full cursor-pointer" onClick={() => document.getElementById('photo-input')?.click()}>
+              <Upload className="w-4 h-4" />
+              Seleccionar Imagen
+            </Button>
+          </label>
+
+          {/* Info Text */}
+          <div className="text-xs text-muted-foreground space-y-1 p-3 rounded-lg bg-blue-50 border border-[#96c3e0]">
+            <p>📸 <strong>Formatos:</strong> PNG, JPG, GIF, WEBP</p>
+            <p>📊 <strong>Tamaño máximo:</strong> 5MB</p>
+            <p>💡 <strong>Recomendación:</strong> Usa una imagen cuadrada para mejor resultado</p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowPhotoUploadModal(false)
+                setProfilePhoto(null)
+                setPhotoPreview('')
+              }}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handlePhotoUpload}
+              isLoading={isUploadingPhoto}
+              disabled={!photoPreview || isUploadingPhoto}
+              className="flex-1"
+            >
+              <Upload className="w-4 h-4" />
+              Subir Foto
+            </Button>
+          </div>
+        </div>
       </Modal>
 
     </div>

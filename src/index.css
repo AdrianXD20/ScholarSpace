@@ -1,1 +1,17 @@
-@import "tailwindcss";
+/* ============================================================================
+   ScholarSpace - Main Stylesheet
+   ============================================================================
+   Sistema de Diseño Unificado con Identidad de Cuaderno para TODO el Proyecto
+   ========================================================================== */
+
+/* Design System - Tokens & Colors */
+@import './styles/design-tokens.css';
+
+/* Notebook Design System - Identidad Visual Principal */
+@import './styles/notebook-design-system.css';
+
+/* Alert Animations - Sistema de Alertas */
+@import './styles/alert-animations.css';
+
+/* Tailwind CSS */
+@import 'tailwindcss';

@@ -1,0 +1,248 @@
+/* ============================================================================
+   SCHOLARSPACE - Design System & Visual Identity
+   ============================================================================
+   Sistema de tokens de diseño unificado con identidad visual cohesiva
+   ========================================================================== */
+
+:root {
+  /* ========================================================================
+     COLORES - Paleta Distintiva
+     ======================================================================== */
+
+  /* Primary Colors - Identidad Principal */
+  --color-primary: #4f46e5; /* Indigo Vibrante */
+  --color-primary-light: #6366f1;
+  --color-primary-dark: #4338ca;
+  --color-primary-foreground: #ffffff;
+
+  /* Secondary Colors - Complementaria */
+  --color-secondary: #10b981; /* Verde Esmeralda */
+  --color-secondary-light: #34d399;
+  --color-secondary-dark: #059669;
+  --color-secondary-foreground: #ffffff;
+
+  /* Accent Colors - Detalles */
+  --color-accent: #f59e0b; /* Ámbar Dorado */
+  --color-accent-light: #fbbf24;
+  --color-accent-dark: #d97706;
+  --color-accent-foreground: #ffffff;
+
+  /* Success, Warning, Error */
+  --color-success: #10b981;
+  --color-success-light: #6ee7b7;
+  --color-success-foreground: #ffffff;
+
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-warning-foreground: #ffffff;
+
+  --color-error: #ef4444;
+  --color-error-light: #fca5a5;
+  --color-error-foreground: #ffffff;
+
+  /* Neutrals - Escala de Grises */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  /* Backgrounds */
+  --color-background: #ffffff;
+  --color-background-secondary: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f1f5f9;
+  --color-foreground: #0f172a;
+  --color-foreground-secondary: #334155;
+  --color-foreground-muted: #64748b;
+
+  /* Borders & Inputs */
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-border-dark: #cbd5e1;
+  --color-input-bg: #ffffff;
+  --color-input-border: #e2e8f0;
+  --color-input-focus: #4f46e5;
+  --color-input-placeholder: #94a3b8;
+
+  /* Cards & Components */
+  --color-card-bg: #ffffff;
+  --color-card-border: #e2e8f0;
+  --color-card-shadow: rgba(15, 23, 42, 0.08);
+
+  /* ========================================================================
+     TIPOGRAFÍA
+     ======================================================================== */
+
+  /* Font Families */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif, 'Geist', 'Geist Fallback';
+  --font-family-mono: 'Fira Code', 'Courier New', monospace, 'Geist Mono', 'Geist Mono Fallback';
+
+  /* Font Sizes */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ========================================================================
+     ESPACIADO - Sistema Modular
+     ======================================================================== */
+
+  --spacing-0: 0;
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-12: 3rem; /* 48px */
+  --spacing-16: 4rem; /* 64px */
+
+  /* ========================================================================
+     ESQUINAS REDONDEADAS (Border Radius)
+     ======================================================================== */
+
+  --radius-none: 0;
+  --radius-sm: 0.25rem; /* 4px */
+  --radius-md: 0.5rem; /* 8px */
+  --radius-lg: 0.75rem; /* 12px */
+  --radius-xl: 1rem; /* 16px */
+  --radius-2xl: 1.5rem; /* 24px */
+  --radius-full: 9999px;
+
+  /* ========================================================================
+     SOMBRAS - Profundidad Visual
+     ======================================================================== */
+
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+
+  /* ========================================================================
+     TRANSICIONES & ANIMACIONES
+     ======================================================================== */
+
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+
+  /* ========================================================================
+     BREAKPOINTS - Responsive Design
+     ======================================================================== */
+
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ========================================================================
+     COMPONENTES ESPECÍFICOS
+     ======================================================================== */
+
+  /* Buttons */
+  --button-padding-sm: var(--spacing-2) var(--spacing-3);
+  --button-padding-md: var(--spacing-2) var(--spacing-4);
+  --button-padding-lg: var(--spacing-3) var(--spacing-6);
+  --button-height-sm: 2rem; /* 32px */
+  --button-height-md: 2.5rem; /* 40px */
+  --button-height-lg: 3rem; /* 48px */
+
+  /* Input */
+  --input-padding: var(--spacing-3) var(--spacing-4);
+  --input-height: 2.5rem; /* 40px */
+  --input-border-width: 1px;
+
+  /* Cards */
+  --card-padding: var(--spacing-6);
+  --card-radius: var(--radius-xl);
+  --card-border-width: 1px;
+
+  /* Navigation */
+  --nav-height: 4rem; /* 64px */
+  --nav-padding: var(--spacing-4);
+
+  /* Sidebar */
+  --sidebar-width: 16rem; /* 256px */
+  --sidebar-width-collapsed: 4rem; /* 64px */
+  --sidebar-padding: var(--spacing-4);
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Primary Colors - Dark */
+    --color-primary: #6366f1;
+    --color-primary-light: #818cf8;
+    --color-primary-dark: #4f46e5;
+    --color-primary-foreground: #ffffff;
+
+    /* Neutrals - Escala de Grises (invertida para dark mode) */
+    --color-slate-50: #0f172a;
+    --color-slate-100: #1e293b;
+    --color-slate-200: #334155;
+    --color-slate-300: #475569;
+    --color-slate-400: #64748b;
+    --color-slate-500: #94a3b8;
+    --color-slate-600: #cbd5e1;
+    --color-slate-700: #e2e8f0;
+    --color-slate-800: #f1f5f9;
+    --color-slate-900: #f8fafc;
+
+    /* Backgrounds */
+    --color-background: #0f172a;
+    --color-background-secondary: #1e293b;
+    --color-surface: #1e293b;
+    --color-surface-secondary: #334155;
+    --color-foreground: #f8fafc;
+    --color-foreground-secondary: #e2e8f0;
+    --color-foreground-muted: #94a3b8;
+
+    /* Borders & Inputs */
+    --color-border: #334155;
+    --color-border-light: #1e293b;
+    --color-border-dark: #475569;
+    --color-input-bg: #1e293b;
+    --color-input-border: #334155;
+    --color-input-focus: #818cf8;
+    --color-input-placeholder: #64748b;
+
+    /* Cards */
+    --color-card-bg: #1e293b;
+    --color-card-border: #334155;
+    --color-card-shadow: rgba(0, 0, 0, 0.3);
+  }
+}

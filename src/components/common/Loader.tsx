@@ -16,7 +16,7 @@ export default function Loader({ size = 'md', className }: LoaderProps) {
     <div className={cn('flex items-center justify-center', className)}>
       <div
         className={cn(
-          'animate-spin rounded-full border-2 border-muted border-t-primary',
+          'animate-spin rounded-full border-2 border-[#e2e8f0] border-t-[#7dc280]',
           sizes[size]
         )}
         role="status"

@@ -5,10 +5,12 @@ import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
+import { useToast } from '../../context/ToastContext'
 import { clasesService } from '../../services/clases.service'
 import type { ClaseApi } from '../../services/clases.service'
 
 export default function Clases() {
+  const toast = useToast()
   const [clases, setClases] = useState<ClaseApi[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -41,35 +43,37 @@ export default function Clases() {
   const handleCopyCode = (codigo: string, id: number) => {
     navigator.clipboard.writeText(codigo)
     setCopiedId(id)
+    toast.success('¡Copiado!', `Código: ${codigo}`)
     setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleJoinByCodigo = async (codigo: string) => {
     setIsJoining(true)
-    setError('')
+    const toastId = toast.loading('Uniéndote a la clase...', 'Por favor espera')
+    
     const result = await clasesService.joinClaseFromApi(codigo.trim())
     setIsJoining(false)
 
     if (result.ok) {
-      // La API/mock ya persiste el id; actualizamos el estado para ocultar la clase.
       setJoinedIds(clasesService.getJoinedClassIds())
-      setSuccessMsg('Te uniste a la clase correctamente')
-      setTimeout(() => setSuccessMsg(''), 3000)
+      toast.removeToast(toastId)
+      toast.success('¡Bienvenido!', 'Te uniste a la clase correctamente')
     } else {
-      setError(result.error ?? 'No se pudo unir a la clase')
-      setTimeout(() => setError(''), 5000)
+      toast.removeToast(toastId)
+      toast.error('Error', result.error ?? 'No se pudo unir a la clase')
     }
   }
 
   const handleJoinClase = async (e: FormEvent) => {
     e.preventDefault()
     if (!joinCodigo.trim()) {
-      setError('Ingresa un código de clase')
+      toast.warning('Código requerido', 'Ingresa un código de clase')
       return
     }
 
     setIsJoining(true)
-    setError('')
+    const toastId = toast.loading('Uniéndote a la clase...', 'Por favor espera')
+    
     const result = await clasesService.joinClaseFromApi(joinCodigo.trim())
     setIsJoining(false)
 
@@ -79,13 +83,14 @@ export default function Clases() {
         clasesService.addJoinedClassId(claseId)
         setJoinedIds(clasesService.getJoinedClassIds())
       }
-      setSuccessMsg('Te uniste a la clase correctamente')
+      toast.removeToast(toastId)
+      toast.success('¡Bienvenido!', 'Te uniste a la clase correctamente')
       setJoinCodigo('')
       setShowJoinModal(false)
-      setTimeout(() => setSuccessMsg(''), 3000)
       loadClases()
     } else {
-      setError(result.error ?? 'No se pudo unir a la clase')
+      toast.removeToast(toastId)
+      toast.error('Error', result.error ?? 'No se pudo unir a la clase')
     }
   }
 

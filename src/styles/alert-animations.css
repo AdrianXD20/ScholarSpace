@@ -1,0 +1,443 @@
+/* ============================================================================
+   SCHOLARSPACE - Alert Animations
+   ============================================================================
+   Animaciones únicas y coherentes para el sistema de alertas tipo cuaderno
+   ========================================================================== */
+
+/* ============================================================================
+   ANIMACIONES PRINCIPALES
+   ============================================================================ */
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -100%) rotateZ(-2deg) scaleY(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) rotateZ(0deg) scaleY(1);
+  }
+}
+
+@keyframes slideOutToTop {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) rotateZ(0deg) scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -100%) rotateZ(-2deg) scaleY(0.8);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-3px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px) rotateZ(2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateZ(0deg);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0) rotateZ(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100px) rotateZ(2deg);
+  }
+}
+
+@keyframes notebookFlip {
+  0% {
+    transform: rotateX(-90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+/* ============================================================================
+   TOAST CONTAINER
+   ============================================================================ */
+
+.toast-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 90vw;
+  width: 100%;
+  max-width: 500px;
+}
+
+.toast-container.bottom-right {
+  top: auto;
+  bottom: 24px;
+  left: auto;
+  right: 24px;
+  max-width: 400px;
+}
+
+/* ============================================================================
+   TOAST BASE STYLES
+   ============================================================================ */
+
+.toast {
+  position: relative;
+  pointer-events: auto;
+  margin-bottom: 12px;
+  padding: 16px 20px;
+  background: white;
+  border: 2px solid #000;
+  border-radius: 0.35rem;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
+  animation: slideInFromTop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.toast.exiting {
+  animation: slideOutToTop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast.bottom-right {
+  animation: slideInFromRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast.bottom-right.exiting {
+  animation: slideOutToRight 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ============================================================================
+   TOAST VARIANTS
+   ============================================================================ */
+
+/* SUCCESS - Verde */
+.toast.toast-success {
+  border-color: #7dc280;
+  background: linear-gradient(135deg, rgba(125, 194, 128, 0.05) 0%, rgba(125, 194, 128, 0.02) 100%);
+  box-shadow: 6px 6px 0 rgba(125, 194, 128, 0.2), inset 0 0 0 2px rgba(125, 194, 128, 0.1);
+}
+
+.toast.toast-success .toast-icon {
+  color: #7dc280;
+  animation: checkmark 0.6s ease-out 0.2s forwards;
+}
+
+.toast.toast-success .toast-title {
+  color: #7dc280;
+  font-weight: 800;
+}
+
+/* ERROR - Rojo */
+.toast.toast-error {
+  border-color: #ff7b7b;
+  background: linear-gradient(135deg, rgba(255, 123, 123, 0.05) 0%, rgba(255, 123, 123, 0.02) 100%);
+  box-shadow: 6px 6px 0 rgba(255, 123, 123, 0.2), inset 0 0 0 2px rgba(255, 123, 123, 0.1);
+}
+
+.toast.toast-error .toast-icon {
+  color: #ff7b7b;
+  animation: shake 0.5s ease-in-out;
+}
+
+.toast.toast-error .toast-title {
+  color: #ff7b7b;
+  font-weight: 800;
+}
+
+/* WARNING - Ámbar */
+.toast.toast-warning {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
+  box-shadow: 6px 6px 0 rgba(245, 158, 11, 0.2), inset 0 0 0 2px rgba(245, 158, 11, 0.1);
+}
+
+.toast.toast-warning .toast-icon {
+  color: #f59e0b;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.toast.toast-warning .toast-title {
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+/* INFO - Azul */
+.toast.toast-info {
+  border-color: #96c3e0;
+  background: linear-gradient(135deg, rgba(150, 195, 224, 0.05) 0%, rgba(150, 195, 224, 0.02) 100%);
+  box-shadow: 6px 6px 0 rgba(150, 195, 224, 0.2), inset 0 0 0 2px rgba(150, 195, 224, 0.1);
+}
+
+.toast.toast-info .toast-icon {
+  color: #96c3e0;
+  animation: spin 1s linear infinite;
+}
+
+.toast.toast-info .toast-title {
+  color: #96c3e0;
+  font-weight: 800;
+}
+
+/* LOADING - Púrpura */
+.toast.toast-loading {
+  border-color: #c8b6f6;
+  background: linear-gradient(135deg, rgba(200, 182, 246, 0.05) 0%, rgba(200, 182, 246, 0.02) 100%);
+  box-shadow: 6px 6px 0 rgba(200, 182, 246, 0.2), inset 0 0 0 2px rgba(200, 182, 246, 0.1);
+}
+
+.toast.toast-loading .toast-icon {
+  color: #c8b6f6;
+  animation: spin 0.8s linear infinite;
+}
+
+.toast.toast-loading .toast-title {
+  color: #c8b6f6;
+  font-weight: 800;
+}
+
+/* ============================================================================
+   TOAST CONTENT
+   ============================================================================ */
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.toast-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.toast-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toast-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.toast-message {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #636e72;
+  margin: 0;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: white;
+  border: 2px solid #000;
+  border-radius: 0.35rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #000;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
+}
+
+.toast-close:hover {
+  background: #f8f8f8;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.08);
+}
+
+.toast-close:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================================
+   PROGRESS BAR
+   ============================================================================ */
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: currentColor;
+  border-radius: 0 0 0.35rem 0;
+  opacity: 0.5;
+}
+
+.toast-progress.success {
+  background: #7dc280;
+  animation: slideProgress 3s linear forwards;
+}
+
+.toast-progress.error {
+  background: #ff7b7b;
+  animation: slideProgress 4s linear forwards;
+}
+
+.toast-progress.warning {
+  background: #f59e0b;
+  animation: slideProgress 3s linear forwards;
+}
+
+.toast-progress.info {
+  background: #96c3e0;
+  animation: slideProgress 3s linear forwards;
+}
+
+.toast-progress.loading {
+  background: #c8b6f6;
+  animation: slideProgress 30s linear forwards;
+}
+
+@keyframes slideProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  .toast-container {
+    max-width: calc(100vw - 32px);
+    width: calc(100vw - 32px);
+    left: 16px;
+  }
+
+  .toast-container.bottom-right {
+    right: 16px;
+    left: auto;
+  }
+
+  .toast {
+    padding: 12px 16px;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.12);
+  }
+
+  .toast.toast-success {
+    box-shadow: 4px 4px 0 rgba(125, 194, 128, 0.15);
+  }
+
+  .toast.toast-error {
+    box-shadow: 4px 4px 0 rgba(255, 123, 123, 0.15);
+  }
+
+  .toast-title {
+    font-size: 13px;
+  }
+
+  .toast-message {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .toast.exiting {
+    animation: none;
+    opacity: 0;
+  }
+
+  .toast-icon {
+    animation: none !important;
+  }
+
+  .toast-progress {
+    animation: none !important;
+  }
+}

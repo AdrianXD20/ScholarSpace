@@ -6,12 +6,14 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
+import { useToast } from '../../context/ToastContext'
 import { proyectosService } from '../../services/proyectos.service'
 import type { ProyectoApi, CreateProyectoRequest } from '../../services/proyectos.service'
 import { cn } from '../../utils/helpers'
 
 export default function Projects() {
   const { user } = useAuth()
+  const toast = useToast()
   const [proyectos, setProyectos] = useState<ProyectoApi[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -20,6 +22,7 @@ export default function Projects() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
   const [selectedProyecto, setSelectedProyecto] = useState<ProyectoApi | null>(null)
   const [isLoadingDetails, setIsLoadingDetails] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -56,12 +59,11 @@ export default function Projects() {
   const handleCreateProyecto = async (e: FormEvent) => {
     e.preventDefault()
     if (!formData.titulo.trim() || !user?.id) {
-      setError('Ingresa un título para el proyecto')
+      toast.warning('Título requerido', 'Ingresa un título para el proyecto')
       return
     }
 
     setIsCreating(true)
-    setError('')
 
     const proyectoData: CreateProyectoRequest = {
       titulo: formData.titulo.trim(),
@@ -69,17 +71,19 @@ export default function Projects() {
       usuario_id: parseInt(user.id),
     }
 
+    const toastId = toast.loading('Creando proyecto...', 'Por favor espera')
     const result = await proyectosService.createProyecto(proyectoData)
     setIsCreating(false)
 
     if (result.ok) {
-      setSuccessMsg('Proyecto creado correctamente')
+      toast.removeToast(toastId)
+      toast.success('¡Creado!', 'Tu proyecto fue creado correctamente')
       setFormData({ titulo: '', descripcion: '' })
       setShowCreateModal(false)
-      setTimeout(() => setSuccessMsg(''), 3000)
       loadProyectos()
     } else {
-      setError(result.error ?? 'No se pudo crear el proyecto')
+      toast.removeToast(toastId)
+      toast.error('Error', result.error ?? 'No se pudo crear el proyecto')
     }
   }
 
@@ -109,49 +113,54 @@ export default function Projects() {
   const handleUpdateProyecto = async (e: FormEvent) => {
     e.preventDefault()
     if (!selectedProyecto || !editFormData.titulo.trim()) {
-      setError('Ingresa un título para el proyecto')
+      toast.warning('Título requerido', 'Ingresa un título para el proyecto')
       return
     }
 
     setIsUpdating(true)
-    setError('')
 
     const updateData = {
       titulo: editFormData.titulo.trim(),
       descripcion: editFormData.descripcion.trim(),
     }
 
+    const toastId = toast.loading('Actualizando proyecto...', 'Por favor espera')
     const result = await proyectosService.updateProyecto(selectedProyecto.id, updateData)
     setIsUpdating(false)
 
     if (result.ok) {
-      setSuccessMsg('Proyecto actualizado correctamente')
+      toast.removeToast(toastId)
+      toast.success('¡Actualizado!', 'Tu proyecto fue modificado correctamente')
       setShowEditModal(false)
       setSelectedProyecto(null)
-      setTimeout(() => setSuccessMsg(''), 3000)
       loadProyectos()
     } else {
-      setError(result.error ?? 'No se pudo actualizar el proyecto')
+      toast.removeToast(toastId)
+      toast.error('Error', result.error ?? 'No se pudo actualizar el proyecto')
     }
   }
 
   const handleDeleteProyecto = async (proyectoId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este proyecto? Esta acción no se puede deshacer.')) {
-      return
-    }
-
     setIsDeleting(proyectoId)
-    setError('')
 
-    const result = await proyectosService.deleteProyecto(proyectoId)
-    setIsDeleting(null)
+    const toastId = toast.loading('Eliminando proyecto...', 'Por favor espera')
+    try {
+      const result = await proyectosService.deleteProyecto(proyectoId)
+      setIsDeleting(null)
+      setShowDeleteConfirm(null)
 
-    if (result.ok) {
-      setSuccessMsg('Proyecto eliminado correctamente')
-      setTimeout(() => setSuccessMsg(''), 3000)
-      loadProyectos()
-    } else {
-      setError(result.error ?? 'No se pudo eliminar el proyecto')
+      if (result.ok) {
+        toast.removeToast(toastId)
+        toast.success('¡Eliminado!', 'Tu proyecto fue eliminado correctamente')
+        loadProyectos()
+      } else {
+        toast.removeToast(toastId)
+        toast.error('Error', result.error ?? 'No se pudo eliminar el proyecto')
+      }
+    } catch (error) {
+      setIsDeleting(null)
+      toast.removeToast(toastId)
+      toast.error('Error', 'Algo salió mal al eliminar')
     }
   }
 
@@ -227,7 +236,7 @@ export default function Projects() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleDeleteProyecto(proyecto.id)}
+                        onClick={() => setShowDeleteConfirm(proyecto.id)}
                         disabled={isDeleting === proyecto.id}
                         className="text-destructive hover:text-destructive"
                       >
@@ -262,24 +271,54 @@ export default function Projects() {
           <div className="text-sm text-muted-foreground">
             Crea un nuevo proyecto para organizar tu trabajo.
           </div>
-          <Input
-            label="Título del proyecto"
-            placeholder="Ingresa el título del proyecto"
-            value={formData.titulo}
-            onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
-            required
-            autoFocus
-          />
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Descripción</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Título</label>
+              <span className={cn(
+                'text-xs font-semibold',
+                formData.titulo.length > 50 ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {formData.titulo.length}/50
+              </span>
+            </div>
+            <Input
+              placeholder="Ingresa el título del proyecto"
+              value={formData.titulo}
+              onChange={(e) => {
+                const text = e.target.value
+                if (text.length <= 50) {
+                  setFormData(prev => ({ ...prev, titulo: text }))
+                }
+              }}
+              maxLength={50}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Descripción</label>
+              <span className={cn(
+                'text-xs font-semibold',
+                formData.descripcion.length > 250 ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {formData.descripcion.length}/250
+              </span>
+            </div>
             <textarea
               placeholder="Describe tu proyecto (opcional)"
               value={formData.descripcion}
-              onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+              onChange={(e) => {
+                const text = e.target.value
+                if (text.length <= 250) {
+                  setFormData(prev => ({ ...prev, descripcion: text }))
+                }
+              }}
+              maxLength={250}
               className={cn(
-                'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                'ring-offset-background placeholder:text-muted-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'flex min-h-[80px] w-full rounded-lg border-2 border-[#000] bg-background px-3 py-2 text-sm',
+                'placeholder:text-muted-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-[#7dc280]',
                 'disabled:cursor-not-allowed disabled:opacity-50'
               )}
               rows={3}
@@ -345,24 +384,54 @@ export default function Projects() {
           <div className="text-sm text-muted-foreground">
             Modifica los detalles de tu proyecto.
           </div>
-          <Input
-            label="Título del proyecto"
-            placeholder="Ingresa el título del proyecto"
-            value={editFormData.titulo}
-            onChange={(e) => setEditFormData(prev => ({ ...prev, titulo: e.target.value }))}
-            required
-            autoFocus
-          />
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Descripción</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Título</label>
+              <span className={cn(
+                'text-xs font-semibold',
+                editFormData.titulo.length > 50 ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {editFormData.titulo.length}/50
+              </span>
+            </div>
+            <Input
+              placeholder="Ingresa el título del proyecto"
+              value={editFormData.titulo}
+              onChange={(e) => {
+                const text = e.target.value
+                if (text.length <= 50) {
+                  setEditFormData(prev => ({ ...prev, titulo: text }))
+                }
+              }}
+              maxLength={50}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Descripción</label>
+              <span className={cn(
+                'text-xs font-semibold',
+                editFormData.descripcion.length > 250 ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {editFormData.descripcion.length}/250
+              </span>
+            </div>
             <textarea
               placeholder="Describe tu proyecto"
               value={editFormData.descripcion}
-              onChange={(e) => setEditFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+              onChange={(e) => {
+                const text = e.target.value
+                if (text.length <= 250) {
+                  setEditFormData(prev => ({ ...prev, descripcion: text }))
+                }
+              }}
+              maxLength={250}
               className={cn(
-                'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                'ring-offset-background placeholder:text-muted-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'flex min-h-[80px] w-full rounded-lg border-2 border-[#000] bg-background px-3 py-2 text-sm',
+                'placeholder:text-muted-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-[#7dc280]',
                 'disabled:cursor-not-allowed disabled:opacity-50'
               )}
               rows={3}
@@ -382,6 +451,42 @@ export default function Projects() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteConfirm !== null}
+        onClose={() => setShowDeleteConfirm(null)}
+        title="Confirmar eliminación"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-foreground">
+              ¿Estás seguro de que quieres eliminar este proyecto? Esta acción <strong>no se puede deshacer</strong> y se perderán todos los apuntes asociados.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(null)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (showDeleteConfirm !== null) {
+                  handleDeleteProyecto(showDeleteConfirm)
+                }
+              }}
+              className="flex-1 bg-destructive hover:bg-destructive/90"
+              isLoading={isDeleting !== null}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

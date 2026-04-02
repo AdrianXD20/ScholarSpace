@@ -17,11 +17,11 @@ export default function ProfesorLayout() {
   const title = tituloRuta(location.pathname)
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen notebook-page flex">
       <ProfesorSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col lg:ml-0">
         <Navbar onMenuClick={() => setSidebarOpen(true)} title={title} />
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 notebook-content">
           <Outlet />
         </main>
       </div>

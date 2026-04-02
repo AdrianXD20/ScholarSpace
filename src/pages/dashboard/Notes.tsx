@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
+import { useToast } from '../../context/ToastContext'
 import { notasService } from '../../services/notas.service'
 import { proyectosService } from '../../services/proyectos.service'
 import type { NotaApi } from '../../services/notas.service'
@@ -15,12 +16,14 @@ import { formatDate, cn } from '../../utils/helpers'
 
 export default function Notes() {
   const { user } = useAuth()
+  const toast = useToast()
   const [notes, setNotes] = useState<NotaApi[]>([])
   const [projects, setProjects] = useState<ProyectoApi[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<NotaApi | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     titulo: '',
     contenido: '',
@@ -99,7 +102,7 @@ export default function Notes() {
     e.preventDefault()
     if (!user?.id || !formData.titulo.trim() || !formData.contenido.trim()) return
     if (projects.length === 0 || formData.proyectoId === '') {
-      alert('Selecciona un proyecto para asociar este apunte.')
+      toast.warning('Proyecto requerido', 'Selecciona un proyecto para asociar este apunte')
       return
     }
 
@@ -112,19 +115,29 @@ export default function Notes() {
     }
 
     setIsSubmitting(true)
+    const toastId = toast.loading(
+      editingNote ? 'Actualizando apunte...' : 'Creando apunte...',
+      'Por favor espera'
+    )
     try {
       if (editingNote) {
         const res = await notasService.updateNota(editingNote.id, payload)
         if (!res.ok) {
-          alert(res.error ?? 'No se pudo actualizar el apunte')
+          toast.removeToast(toastId)
+          toast.error('Error', res.error ?? 'No se pudo actualizar el apunte')
           return
         }
+        toast.removeToast(toastId)
+        toast.success('¡Actualizado!', 'Tu apunte fue modificado correctamente')
       } else {
         const res = await notasService.createNota(payload)
         if (!res.ok) {
-          alert(res.error ?? 'No se pudo crear el apunte')
+          toast.removeToast(toastId)
+          toast.error('Error', res.error ?? 'No se pudo crear el apunte')
           return
         }
+        toast.removeToast(toastId)
+        toast.success('¡Creado!', 'Tu apunte fue guardado correctamente')
       }
 
       await loadNotes()
@@ -135,13 +148,21 @@ export default function Notes() {
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm('¿Estas seguro de eliminar este apunte?')) {
+    const toastId = toast.loading('Eliminando apunte...', 'Por favor espera')
+    try {
       const res = await notasService.deleteNota(id)
       if (!res.ok) {
-        alert(res.error ?? 'No se pudo eliminar el apunte')
+        toast.removeToast(toastId)
+        toast.error('Error', res.error ?? 'No se pudo eliminar el apunte')
         return
       }
+      toast.removeToast(toastId)
+      toast.success('¡Eliminado!', 'Tu apunte fue eliminado correctamente')
+      setShowDeleteConfirm(null)
       await loadNotes()
+    } catch (error) {
+      toast.removeToast(toastId)
+      toast.error('Error', 'Algo salió mal al eliminar')
     }
   }
 
@@ -186,7 +207,7 @@ export default function Notes() {
                       <Edit className="w-4 h-4 text-black dark:text-white" />
                     </button>
                     <button
-                      onClick={() => handleDelete(note.id)}
+                      onClick={() => setShowDeleteConfirm(note.id)}
                       className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 transition-colors"
                       aria-label="Eliminar apunte"
                     >
@@ -235,24 +256,54 @@ export default function Notes() {
         title={editingNote ? 'Editar Apunte' : 'Nuevo Apunte'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Titulo"
-            placeholder="Titulo del apunte"
-            value={formData.titulo}
-            onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-            required
-          />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Título</label>
+              <span className={cn(
+                'text-xs font-semibold',
+                formData.titulo.length > 50 ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {formData.titulo.length}/50
+              </span>
+            </div>
+            <Input
+              placeholder="Título del apunte"
+              value={formData.titulo}
+              onChange={(e) => {
+                const text = e.target.value
+                if (text.length <= 50) {
+                  setFormData({ ...formData, titulo: text })
+                }
+              }}
+              maxLength={50}
+              required
+            />
+          </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Contenido</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Contenido</label>
+              <span className={cn(
+                'text-xs font-semibold',
+                formData.contenido.length > 250 ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {formData.contenido.length}/250
+              </span>
+            </div>
             <textarea
-              placeholder="Escribe tu apunte aqui..."
+              placeholder="Escribe tu apunte aquí..."
               value={formData.contenido}
-              onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
+              onChange={(e) => {
+                const text = e.target.value
+                if (text.length <= 250) {
+                  setFormData({ ...formData, contenido: text })
+                }
+              }}
+              maxLength={250}
               className={cn(
-                'w-full px-4 py-2.5 rounded-lg bg-input border border-border',
+                'w-full px-4 py-2.5 rounded-lg bg-input border-2 border-[#000]',
                 'text-foreground placeholder:text-muted-foreground',
-                'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+                'focus:outline-none focus:ring-2 focus:ring-[#7dc280]',
                 'resize-none min-h-[120px]'
               )}
               required
@@ -304,6 +355,41 @@ export default function Notes() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal 
+        isOpen={showDeleteConfirm !== null} 
+        onClose={() => setShowDeleteConfirm(null)} 
+        title="Confirmar eliminación"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-foreground">
+              ¿Estás seguro de que quieres eliminar este apunte? Esta acción <strong>no se puede deshacer</strong>.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(null)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="primary"
+              onClick={() => {
+                if (showDeleteConfirm !== null) {
+                  handleDelete(showDeleteConfirm)
+                }
+              }}
+              className="flex-1 bg-destructive hover:bg-destructive/90"
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

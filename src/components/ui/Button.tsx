@@ -3,24 +3,25 @@ import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '../../utils/helpers'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
+  variant?: 'primary' | 'secondary' | 'warning' | 'outline' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
   isLoading?: boolean
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
+    // Notebook Design System Variants
     const variants = {
-      primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-      outline: 'border border-border bg-transparent hover:bg-secondary',
-      ghost: 'hover:bg-secondary',
-      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+      primary: 'notebook-button primary border-2 border-[#000] bg-[#7dc280] text-[#000] font-extrabold hover:shadow-[3px_3px_0_rgba(0,0,0,0.12)] active:shadow-[1px_1px_0_rgba(0,0,0,0.08)]',
+      secondary: 'notebook-button secondary border-2 border-[#000] bg-[#96c3e0] text-[#000] font-extrabold hover:shadow-[3px_3px_0_rgba(0,0,0,0.12)] active:shadow-[1px_1px_0_rgba(0,0,0,0.08)]',
+      warning: 'notebook-button warning border-2 border-[#000] bg-[#ff7b7b] text-white font-extrabold hover:shadow-[3px_3px_0_rgba(0,0,0,0.15)] active:shadow-[1px_1px_0_rgba(0,0,0,0.1)]',
+      outline: 'border-2 border-[#000] bg-white text-[#000] font-semibold hover:bg-[#fafafa] hover:shadow-[2px_2px_0_rgba(0,0,0,0.08)]',
+      ghost: 'text-[#000] font-semibold hover:bg-[#f8f8f8] hover:shadow-[2px_2px_0_rgba(0,0,0,0.06)]',
     }
 
     const sizes = {
       sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2',
+      md: 'px-4 py-2 text-base',
       lg: 'px-6 py-3 text-lg',
     }
 
@@ -28,9 +29,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
-          'disabled:opacity-50 disabled:pointer-events-none',
+          'inline-flex items-center justify-center gap-2 rounded-sm font-extrabold transition-all duration-150',
+          'focus:outline-none focus:ring-2 focus:ring-[#96c3e0] focus:ring-offset-2',
+          'disabled:opacity-60 disabled:pointer-events-none',
+          'transform hover:-translate-y-0.5',
           variants[variant],
           sizes[size],
           className

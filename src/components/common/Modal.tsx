@@ -33,32 +33,32 @@ export default function Modal({ isOpen, onClose, title, children, className }: M
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
       <div 
         className={cn(
-          'relative z-10 w-full max-w-lg bg-card rounded-xl shadow-xl',
-          'border border-border',
+          'relative z-10 w-full max-w-lg bg-white rounded-sm border-2 border-[#000]',
+          'shadow-[8px_8px_0_rgba(0,0,0,0.18)]',
           className
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
       >
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex items-center justify-between p-6 border-b-2 border-[#000]">
           {title && (
-            <h2 id="modal-title" className="text-lg font-semibold text-foreground">
+            <h2 id="modal-title" className="text-lg font-extrabold text-[#000]">
               {title}
             </h2>
           )}
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-secondary transition-colors ml-auto"
+            className="p-1 rounded-sm border-2 border-[#000] bg-white hover:bg-[#f0f0f0] transition-colors ml-auto notebook-icon-btn"
             aria-label="Cerrar modal"
           >
-            <X className="w-5 h-5 text-muted-foreground" />
+            <X className="w-5 h-5 text-[#000]" />
           </button>
         </div>
         <div className="p-6">{children}</div>

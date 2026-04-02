@@ -12,7 +12,7 @@ export default function NavIconImg({ src, alt, className }: NavIconImgProps) {
     <img
       src={src}
       alt={alt}
-      className={cn('w-6 h-6 object-contain shrink-0', className)}
+      className={cn('w-6 h-6 object-contain shrink-0 notebook-icon', className)}
       loading="lazy"
     />
   )

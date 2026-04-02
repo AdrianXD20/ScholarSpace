@@ -1,21 +1,26 @@
 import { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { X, LayoutGrid, BookOpen, LogOut } from 'lucide-react'
 import { cn } from '../../utils/helpers'
 import { useAuth } from '../../hooks/useAuth'
-import NavIconImg from '../../components/common/NavIconImg'
 import UserAvatar from '../../components/common/UserAvatar'
-import { iconProgreso, iconBuscar, iconLogout } from '../../assets/Icons'
 
 interface ProfesorSidebarProps {
   isOpen: boolean
   onClose: () => void
 }
 
-const nav = [
-  { to: '/profesor', src: iconProgreso, label: 'Panel docente', alt: 'Progreso', end: true },
-  { to: '/profesor/clases', src: iconBuscar, label: 'Mis clases', alt: 'Buscar', end: false },
-] as const
+interface NavItem {
+  to: string
+  label: string
+  icon: React.ReactNode
+  end: boolean
+}
+
+const nav: NavItem[] = [
+  { to: '/profesor', label: 'Panel Docente', icon: <LayoutGrid className="w-5 h-5" />, end: true },
+  { to: '/profesor/clases', label: 'Mis Clases', icon: <BookOpen className="w-5 h-5" />, end: false },
+]
 
 export default function ProfesorSidebar({ isOpen, onClose }: ProfesorSidebarProps) {
   const { logout, user } = useAuth()
@@ -83,7 +88,7 @@ export default function ProfesorSidebar({ isOpen, onClose }: ProfesorSidebarProp
                       )
                     }
                   >
-                    <NavIconImg src={item.src} alt={item.alt} />
+                    <span className="shrink-0">{item.icon}</span>
                     {item.label}
                   </NavLink>
                 </li>
@@ -97,8 +102,8 @@ export default function ProfesorSidebar({ isOpen, onClose }: ProfesorSidebarProp
               onClick={() => logout()}
               className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
-              <img src={iconLogout} alt="" className="w-6 h-6 object-contain shrink-0" aria-hidden />
-              Cerrar sesión
+              <LogOut className="w-5 h-5 shrink-0" />
+              Cerrar Sesión
             </button>
           </div>
         </div>
