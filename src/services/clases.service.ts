@@ -10,8 +10,8 @@ export interface ClaseApi {
   id: number
   nombre: string
   codigo: string
-  profesor_id: number
-  profesor: {
+  profesor_id?: number
+  profesor?: {
     nombre: string
     email: string
   }
@@ -138,6 +138,40 @@ export const clasesService = {
 
   getClasesByDocente(teacherId: string): Clase[] {
     return readClasses().filter((c) => c.teacherId === teacherId)
+  },
+
+  async getClasesByUsuario(usuarioId: number): Promise<{ ok: boolean; data?: ClaseApi[]; error?: string }> {
+    try {
+      const res = await httpClient<unknown>(endpoints.clases.alumno, {
+        method: 'GET',
+      })
+
+      const arr = Array.isArray(res)
+        ? res
+        : typeof res === 'object' && res !== null && Array.isArray((res as any).data)
+        ? (res as any).data
+        : []
+
+      const clases = (arr as unknown[])
+        .filter((item) => {
+          if (item == null || typeof item !== 'object') return false
+          const obj = item as Record<string, unknown>
+          const rawUserId = obj.usuario_id ?? obj.user_id ?? obj.usuarioId
+          return rawUserId == null || String(rawUserId) === String(usuarioId)
+        })
+        .map((item) => {
+          const obj = item as Record<string, unknown>
+          if (obj.clase && typeof obj.clase === 'object') {
+            return obj.clase as ClaseApi
+          }
+          return item as ClaseApi
+        })
+
+      return { ok: true, data: clases }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener las clases del alumno'
+      return { ok: false, error: msg }
+    }
   },
 
   /** Clases en las que está inscrito el estudiante */

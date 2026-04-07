@@ -8,7 +8,7 @@ import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../../context/ToastContext'
-import { notesService } from '../../services/notes.service'
+import { notasService } from '../../services/notas.service'
 import { userService } from '../../services/user.service'
 import { usuarioService } from '../../services/usuario.service'
 import { authService } from '../../services/auth.service'
@@ -17,6 +17,7 @@ import { formatDate, cn } from '../../utils/helpers'
 import { iconApuntes, iconLogros, iconActividades } from '../../assets/Icons'
 import type { UsuarioData } from '../../services/usuario.service'
 import { getPasswordChecklist, isPasswordValid } from '../../utils/authValidation'
+
 
 const ROLE_LABEL = {
   student: 'Estudiante',
@@ -81,15 +82,25 @@ export default function Profile() {
     })
   }, [user?.id])
 
-  useEffect(() => {
-    if (user?.id) {
-      setStats({
-        notes: notesService.getNotes(user.id).length,
-        achievements: userService.getAchievements(user.id).length,
-        activities: userService.getActivities(user.id).length,
-      })
-    }
-  }, [user?.id])
+
+ useEffect(() => {
+  if (!user?.id) return
+
+  const loadStats = async () => {
+    const notasRes = await notasService.getNotas()
+
+    setStats({
+      notes:
+        notasRes.ok && notasRes.data
+          ? notasRes.data.filter(n => n.usuario_id === user.id).length
+          : 0,
+      achievements: userService.getAchievements(user.id).length,
+      activities: userService.getActivities(user.id).length,
+    })
+  }
+
+  loadStats()
+}, [user?.id])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -266,9 +277,6 @@ export default function Profile() {
               {formData.bio && (
                 <p className="mt-3 text-sm text-muted-foreground">{formData.bio}</p>
               )}
-              <p className="text-xs text-muted-foreground mt-3">
-                Miembro desde {user?.createdAt ? formatDate(user.createdAt) : 'Desconocido'}
-              </p>
             </div>
           </div>
         </CardContent>

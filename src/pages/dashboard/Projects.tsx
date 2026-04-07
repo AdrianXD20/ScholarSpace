@@ -214,9 +214,6 @@ export default function Projects() {
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      ID: {proyecto.id}
-                    </span>
                     <div className="flex gap-2">
                       <Button 
                         variant="outline" 

@@ -30,6 +30,21 @@ export const proyectosService = {
     }
   },
 
+  async getProyectosByUsuario(usuarioId: number): Promise<{ ok: boolean; data?: ProyectoApi[]; error?: string }> {
+    try {
+      const data = await httpClient<ProyectoApi[]>(endpoints.proyectos.byUsuario, {
+        method: 'GET',
+      })
+      const filtered = Array.isArray(data)
+        ? data.filter((proyecto) => proyecto.usuario_id === usuarioId)
+        : []
+      return { ok: true, data: filtered }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo obtener los proyectos del usuario'
+      return { ok: false, error: msg }
+    }
+  },
+
   async getProyectoById(id: number): Promise<{ ok: boolean; data?: ProyectoApi; error?: string }> {
     try {
       const data = await httpClient<ProyectoApi>(`${endpoints.proyectos.list}/${id}`, {
