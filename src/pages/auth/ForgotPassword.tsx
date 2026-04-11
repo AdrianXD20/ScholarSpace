@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail, ArrowLeft, Key, Lock } from 'lucide-react'
 import Button from '../../components/ui/Button'
@@ -52,8 +51,7 @@ export default function ForgotPassword() {
     ]
   }, [step])
 
-  const handleEmailSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleEmailSubmit = async () => {
     setError('')
     setMessage('')
     if (!email.trim()) {
@@ -71,8 +69,7 @@ export default function ForgotPassword() {
     }
   }
 
-  const handleTokenSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleTokenSubmit = async () => {
     setError('')
     setMessage('')
     if (!token.trim()) {
@@ -93,8 +90,7 @@ export default function ForgotPassword() {
     )
   }
 
-  const handleResetSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleResetSubmit = async () => {
     setError('')
     setMessage('')
 
@@ -148,9 +144,9 @@ export default function ForgotPassword() {
       </div>
 
       <form
-        onSubmit={
-          step === 'reset' ? handleResetSubmit : step === 'token' ? handleTokenSubmit : handleEmailSubmit
-        }
+        onSubmit={(e) => {
+          e.preventDefault()
+        }}
         className="flex flex-col gap-4"
       >
         {error && <div className="p-3 text-sm font-medium auth-sketch-alert-error">{error}</div>}
@@ -240,7 +236,12 @@ export default function ForgotPassword() {
         )}
 
         <Button
-          type="submit"
+          type="button"
+          onClick={() => {
+            if (step === 'reset') void handleResetSubmit()
+            else if (step === 'token') void handleTokenSubmit()
+            else void handleEmailSubmit()
+          }}
           isLoading={step === 'email' ? isSendingEmail : step === 'token' ? isVerifyingToken : isChangingPassword}
           className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
         >

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Plus, Copy, CheckCircle, BookOpen } from 'lucide-react'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -64,8 +63,7 @@ export default function Clases() {
     }
   }
 
-  const handleJoinClase = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleJoinClase = async () => {
     if (!joinCodigo.trim()) {
       toast.warning('Código requerido', 'Ingresa un código de clase')
       return
@@ -195,7 +193,12 @@ export default function Clases() {
 
       {/* Join Class Modal */}
       <Modal isOpen={showJoinModal} onClose={() => setShowJoinModal(false)} title="Unirme a una clase">
-        <form onSubmit={handleJoinClase} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           <div className="text-sm text-muted-foreground">
             Ingresa el código de clase que te proporcionó tu profesor.
           </div>
@@ -215,7 +218,7 @@ export default function Clases() {
             >
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isJoining} className="flex-1">
+            <Button type="button" onClick={() => void handleJoinClase()} isLoading={isJoining} className="flex-1">
               Unirme
             </Button>
           </div>

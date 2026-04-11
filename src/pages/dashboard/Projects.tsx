@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Plus, FolderOpen, Edit, Trash2 } from 'lucide-react'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -56,8 +55,7 @@ export default function Projects() {
     loadProyectos()
   }, [])
 
-  const handleCreateProyecto = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleCreateProyecto = async () => {
     if (!formData.titulo.trim() || !user?.id) {
       toast.warning('Título requerido', 'Ingresa un título para el proyecto')
       return
@@ -110,8 +108,7 @@ export default function Projects() {
     setShowEditModal(true)
   }
 
-  const handleUpdateProyecto = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleUpdateProyecto = async () => {
     if (!selectedProyecto || !editFormData.titulo.trim()) {
       toast.warning('Título requerido', 'Ingresa un título para el proyecto')
       return
@@ -264,7 +261,12 @@ export default function Projects() {
 
       {/* Create Project Modal */}
       <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Crear Nuevo Proyecto">
-        <form onSubmit={handleCreateProyecto} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           <div className="text-sm text-muted-foreground">
             Crea un nuevo proyecto para organizar tu trabajo.
           </div>
@@ -330,7 +332,7 @@ export default function Projects() {
             >
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isCreating} className="flex-1">
+            <Button type="button" onClick={() => void handleCreateProyecto()} isLoading={isCreating} className="flex-1">
               Crear Proyecto
             </Button>
           </div>
@@ -377,7 +379,12 @@ export default function Projects() {
 
       {/* Edit Modal */}
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Proyecto">
-        <form onSubmit={handleUpdateProyecto} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           <div className="text-sm text-muted-foreground">
             Modifica los detalles de tu proyecto.
           </div>
@@ -443,7 +450,7 @@ export default function Projects() {
             >
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isUpdating} className="flex-1">
+            <Button type="button" onClick={() => void handleUpdateProyecto()} isLoading={isUpdating} className="flex-1">
               Actualizar Proyecto
             </Button>
           </div>

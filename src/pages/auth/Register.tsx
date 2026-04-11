@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import type { ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Mail,
@@ -81,8 +81,7 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     setError('')
 
     if (!formData.name || !formData.email || !formData.password) {
@@ -178,7 +177,12 @@ export default function Register() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+        }}
+        className="flex flex-col gap-4"
+      >
         {error && <div className="p-3 text-sm font-medium auth-sketch-alert-error">{error}</div>}
 
         <div className="grid grid-cols-2 gap-0 border-2 border-[var(--sketch-ink)]">
@@ -393,7 +397,8 @@ export default function Register() {
               )}
 
         <Button
-                type="submit"
+                type="button"
+                onClick={() => void handleSubmit()}
                 isLoading={isLoading}
                 className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
                 disabled={emailTaken || isCheckingEmail}

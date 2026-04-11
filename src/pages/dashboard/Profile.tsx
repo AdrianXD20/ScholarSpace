@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { User, Mail, Building, GraduationCap, Save, Users, Lock, Camera, Upload, X } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
@@ -102,8 +101,7 @@ export default function Profile() {
   loadStats()
 }, [user?.id])
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     if (!user?.id) return
     
     setIsSaving(true)
@@ -187,8 +185,7 @@ export default function Profile() {
     }
   }
 
-  const handlePasswordChangeSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handlePasswordChangeSubmit = async () => {
     setPasswordError('')
     if (!user?.id) return
 
@@ -335,7 +332,12 @@ export default function Profile() {
           {isLoadingProfile ? (
             <div className="text-center py-8 text-muted-foreground">Cargando datos...</div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+              }}
+              className="flex flex-col gap-4"
+            >
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="relative">
                   <User className="absolute left-3 top-9 w-5 h-5 text-muted-foreground" />
@@ -421,7 +423,12 @@ export default function Profile() {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" isLoading={isSaving} className="flex-1">
+                  <Button
+                    type="button"
+                    onClick={() => void handleSubmit()}
+                    isLoading={isSaving}
+                    className="flex-1"
+                  >
                     <Save className="w-4 h-4" />
                     Guardar Cambios
                   </Button>
@@ -449,7 +456,12 @@ export default function Profile() {
 
       {/* Change Password Modal */}
       <Modal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} title="Cambiar Contraseña">
-        <form onSubmit={handlePasswordChangeSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           {passwordError && (
             <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{passwordError}</div>
           )}
@@ -539,7 +551,12 @@ export default function Profile() {
             >
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isSaving} className="flex-1">
+            <Button
+              type="button"
+              onClick={() => void handlePasswordChangeSubmit()}
+              isLoading={isSaving}
+              className="flex-1"
+            >
               Actualizar Contraseña
             </Button>
           </div>

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Copy, ChevronRight } from 'lucide-react'
 import { env } from '../../config/env'
@@ -64,8 +63,7 @@ export default function MisClases() {
     setVersion((n) => n + 1)
   }
 
-  const handleCrear = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleCrear = async () => {
     setMsg('')
     if (!teacherId || !nombre.trim()) {
       setMsg('Indica el nombre de la clase.')
@@ -116,7 +114,12 @@ export default function MisClases() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCrear} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+            }}
+            className="space-y-4"
+          >
             {msg && (
               <p className="text-sm text-primary bg-primary/10 rounded-lg px-3 py-2">{msg}</p>
             )}
@@ -137,7 +140,7 @@ export default function MisClases() {
                 placeholder="Breve descripción para tu referencia"
               />
             </div>
-            <Button type="submit" className="gap-2">
+            <Button type="button" onClick={() => void handleCrear()} className="gap-2">
               <Plus className="w-4 h-4" />
               Crear clase
             </Button>

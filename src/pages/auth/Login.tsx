@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Mail, Lock } from 'lucide-react'
 import Button from '../../components/ui/Button'
@@ -27,8 +26,7 @@ export default function Login() {
     }
   }, [location.state])
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     setError('')
     setInfo('')
 
@@ -72,7 +70,12 @@ export default function Login() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+        }}
+        className="flex flex-col gap-4"
+      >
         {info && <div className="p-3 text-sm font-medium auth-sketch-alert-ok">{info}</div>}
         {error && <div className="p-3 text-sm font-medium auth-sketch-alert-error">{error}</div>}
 
@@ -115,7 +118,12 @@ export default function Login() {
           />
         </div>
 
-        <Button type="submit" isLoading={isLoading} className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]">
+        <Button
+          type="button"
+          onClick={() => void handleSubmit()}
+          isLoading={isLoading}
+          className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
+        >
           Iniciar sesión
         </Button>
 

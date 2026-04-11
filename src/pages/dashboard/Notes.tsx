@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Plus, Edit, Trash2 } from 'lucide-react'
 import { iconBuscar, iconApuntes } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
@@ -98,8 +97,7 @@ export default function Notes() {
     setIsModalOpen(true)
   }
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     if (!user?.id || !formData.titulo.trim() || !formData.contenido.trim()) return
     if (projects.length === 0 || formData.proyectoId === '') {
       toast.warning('Proyecto requerido', 'Selecciona un proyecto para asociar este apunte')
@@ -255,7 +253,12 @@ export default function Notes() {
         onClose={() => setIsModalOpen(false)}
         title={editingNote ? 'Editar Apunte' : 'Nuevo Apunte'}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-foreground">Título</label>
@@ -346,7 +349,8 @@ export default function Notes() {
               Cancelar
             </Button>
             <Button
-              type="submit"
+              type="button"
+              onClick={() => void handleSubmit()}
               className="flex-1"
               isLoading={isSubmitting}
               disabled={projects.length === 0 || formData.proyectoId === ''}

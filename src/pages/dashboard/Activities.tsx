@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Plus, CheckCircle, Clock, Target, Trash2, Edit } from 'lucide-react'
 import { iconActividades } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
@@ -163,8 +162,7 @@ export default function Activities() {
     ? allActivities.filter((a) => a.status === filterStatus)
     : allActivities
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     if (!user?.id || !formData.title.trim()) return
 
     if (proyectos.length === 0 || !formData.proyectoId) {
@@ -446,7 +444,12 @@ export default function Activities() {
         }}
         title={editingActivity ? 'Editar Actividad' : 'Nueva Actividad'}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           <Input
             label="Titulo"
             placeholder="Ej: Proyecto de investigación"
@@ -570,9 +573,10 @@ export default function Activities() {
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              isLoading={isSavingActivity} 
+            <Button
+              type="button"
+              onClick={() => void handleSubmit()}
+              isLoading={isSavingActivity}
               className="flex-1"
               disabled={proyectos.length === 0 || clases.length === 0 || !formData.proyectoId || !formData.claseId}
             >

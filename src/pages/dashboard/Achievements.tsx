@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import type { FormEvent } from 'react'
 import { Plus, Award, Star, Briefcase, Trash2, Trophy } from 'lucide-react'
 import { iconLogros } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
@@ -115,8 +114,7 @@ export default function Achievements() {
     ? achievements.filter((a) => a.category === selectedCategory)
     : achievements
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     if (!user?.id || !formData.title.trim()) return
 
     if (projects.length === 0 || formData.proyectoId === '') {
@@ -274,7 +272,12 @@ export default function Achievements() {
 
       {/* Create Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Agregar Logro">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+          }}
+          className="flex flex-col gap-4"
+        >
           <Input
             label="Titulo del logro"
             placeholder="Ej: Primer lugar en concurso de ciencias"
@@ -359,7 +362,8 @@ export default function Achievements() {
               Cancelar
             </Button>
             <Button
-              type="submit"
+              type="button"
+              onClick={() => void handleSubmit()}
               className="flex-1"
               isLoading={isSubmitting}
               disabled={projects.length === 0 || formData.proyectoId === ''}

@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-import type { FormEvent } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Send } from 'lucide-react'
 import {
@@ -67,8 +66,7 @@ export default function PortafolioEstudiante() {
     [estudianteId, motivacionTick]
   )
 
-  const handleMotivacion = (e: FormEvent) => {
-    e.preventDefault()
+  const handleMotivacion = () => {
     if (!user?.id || !claseId || !estudianteId || !mensaje.trim()) return
     setEnviando(true)
     motivacionService.registrarMensaje(user.id, estudianteId, claseId, mensaje.trim())
@@ -110,7 +108,12 @@ export default function PortafolioEstudiante() {
         </CardHeader>
         <CardContent className="space-y-4">
           {info && <p className="text-sm text-primary">{info}</p>}
-          <form onSubmit={handleMotivacion} className="flex flex-col sm:flex-row gap-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+            }}
+            className="flex flex-col sm:flex-row gap-2"
+          >
             <input
               className="flex-1 px-4 py-2.5 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="Ej. ¡Buen trabajo con el proyecto!"
@@ -118,7 +121,7 @@ export default function PortafolioEstudiante() {
               onChange={(e) => setMensaje(e.target.value)}
               maxLength={500}
             />
-            <Button type="submit" isLoading={enviando} className="gap-2 shrink-0">
+            <Button type="button" onClick={handleMotivacion} isLoading={enviando} className="gap-2 shrink-0">
               <Send className="w-4 h-4" />
               Enviar
             </Button>
