@@ -65,7 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           'Demasiados intentos. Espera unos minutos o restablece tu contraseña.',
       }
     }
-    setIsLoading(true)
+    // No usar isLoading aquí: PublicRoute sustituye toda la página por el loader,
+    // desmonta Login/Register y rompe la navegación (SPA en blanco hasta recargar).
     try {
       const result = await authService.login(credentials)
       if (result.ok) {
@@ -75,21 +76,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       recordFailedLogin(credentials.email)
       return { ok: false, error: result.error }
-    } finally {
-      setIsLoading(false)
+    } catch {
+      recordFailedLogin(credentials.email)
+      return { ok: false, error: 'No se pudo iniciar sesión.' }
     }
   }
 
   const register = async (data: RegisterData): Promise<LoginResult> => {
-    setIsLoading(true)
     try {
       const result = await authService.register(data)
       if (result.ok) {
         return { ok: true, user: result.user }
       }
       return { ok: false, error: result.error }
-    } finally {
-      setIsLoading(false)
+    } catch {
+      return { ok: false, error: 'No se pudo registrar.' }
     }
   }
 

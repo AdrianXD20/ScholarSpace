@@ -11,7 +11,8 @@ import { AUTH_LIMITS, isValidEmail } from '../../utils/authValidation'
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, isLoading } = useAuth()
+  const { login } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -43,11 +44,16 @@ export default function Login() {
       return
     }
 
-    const result = await login({ email, password })
-    if (result.ok) {
-      navigate(defaultHomePath(result.user?.role))
-    } else {
-      setError(result.error ?? 'Credenciales incorrectas. Verifica tu email y contraseña.')
+    setIsSubmitting(true)
+    try {
+      const result = await login({ email, password })
+      if (result.ok) {
+        navigate(defaultHomePath(result.user?.role), { replace: true })
+      } else {
+        setError(result.error ?? 'Credenciales incorrectas. Verifica tu email y contraseña.')
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -111,7 +117,7 @@ export default function Login() {
             maxLength={AUTH_LIMITS.password.max}
             error={
               password.length > 0 &&
-              (password.length < AUTH_LIMITS.password.min || password.length > AUTH_LIMITS.password.max)
+                (password.length < AUTH_LIMITS.password.min || password.length > AUTH_LIMITS.password.max)
                 ? `Debe tener entre ${AUTH_LIMITS.password.min} y ${AUTH_LIMITS.password.max} caracteres.`
                 : undefined
             }
@@ -121,7 +127,7 @@ export default function Login() {
         <Button
           type="button"
           onClick={() => void handleSubmit()}
-          isLoading={isLoading}
+          isLoading={isSubmitting}
           className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
         >
           Iniciar sesión

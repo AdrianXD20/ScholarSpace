@@ -28,7 +28,8 @@ import {
 
 export default function Register() {
   const navigate = useNavigate()
-  const { register, isLoading } = useAuth()
+  const { register } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [accountType, setAccountType] = useState<AccountType>('student')
   const [formData, setFormData] = useState({
     name: '',
@@ -131,29 +132,34 @@ export default function Register() {
       }
     }
 
-    const result = await register({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-      institution: formData.institution,
-      career: formData.career,
-      accountType,
-      codigoClase: accountType === 'student' ? formData.codigoClase : undefined,
-      perfilDocente:
-        accountType === 'teacher'
-          ? {
-              titulacionAcademica: formData.titulacionAcademica.trim(),
-              departamento: formData.departamento.trim(),
-              anosExperiencia: Number(formData.anosExperiencia),
-              cargo: formData.cargo.trim() || undefined,
-            }
-          : undefined,
-    })
+    setIsSubmitting(true)
+    try {
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        institution: formData.institution,
+        career: formData.career,
+        accountType,
+        codigoClase: accountType === 'student' ? formData.codigoClase : undefined,
+        perfilDocente:
+          accountType === 'teacher'
+            ? {
+                titulacionAcademica: formData.titulacionAcademica.trim(),
+                departamento: formData.departamento.trim(),
+                anosExperiencia: Number(formData.anosExperiencia),
+                cargo: formData.cargo.trim() || undefined,
+              }
+            : undefined,
+      })
 
-    if (result.ok) {
-      navigate('/login', { replace: true, state: { registeredOk: true } })
-    } else {
-      setError(result.error ?? 'No se pudo completar el registro.')
+      if (result.ok) {
+        navigate('/login', { replace: true, state: { registeredOk: true } })
+      } else {
+        setError(result.error ?? 'No se pudo completar el registro.')
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -399,7 +405,7 @@ export default function Register() {
         <Button
                 type="button"
                 onClick={() => void handleSubmit()}
-                isLoading={isLoading}
+                isLoading={isSubmitting}
                 className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
                 disabled={emailTaken || isCheckingEmail}
               >

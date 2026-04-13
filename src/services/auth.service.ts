@@ -93,6 +93,12 @@ function inferMockRole(email: string): UserRole {
   return 'student'
 }
 
+/** Valor de `rol` en POST /register según el tipo de cuenta (ajusta si tu API usa otros literales). */
+function registerPayloadRol(accountType: RegisterData['accountType']): string {
+  if (accountType === 'teacher') return 'TEACHER'
+  return 'USER'
+}
+
 function readUsers(): StoredUser[] {
   try {
     return JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as StoredUser[]
@@ -123,6 +129,7 @@ export const authService = {
       const role = found.role ?? inferMockRole(found.email)
       const { password: _, ...rest } = found
       const user: User = normalizeUser({ ...rest, role })
+      persistUserSession(user)
       return { ok: true, user }
     }
 
@@ -224,12 +231,15 @@ export const authService = {
     }
 
     try {
-      const apiPayload = {
-        rol: "USER",
+      const apiPayload: Record<string, unknown> = {
+        rol: registerPayloadRol(payload.accountType),
         nombre: payload.name,
         email: payload.email,
         password: payload.password,
-        foto_perfil: null
+        foto_perfil: null,
+      }
+      if (payload.accountType === 'teacher' && payload.perfilDocente) {
+        apiPayload.perfilDocente = payload.perfilDocente
       }
       const res = await httpClient<RegisterApiResponse>(endpoints.auth.register, {
         method: 'POST',
@@ -245,7 +255,15 @@ export const authService = {
         rol: res.rol,
         createdAt: new Date().toISOString(), // Assuming created now
       }
-      const user = normalizeUser(mapApiUser(apiUser))
+      let user = normalizeUser(mapApiUser(apiUser))
+      // Si la API aún devuelve rol genérico (p. ej. USER), alineamos con lo elegido en el formulario
+      if (payload.accountType === 'teacher') {
+        user = normalizeUser({
+          ...user,
+          role: 'teacher',
+          perfilDocente: payload.perfilDocente,
+        })
+      }
       // No tokens returned, so no session persistence
       // User needs to login after registration
       return { ok: true, user }
