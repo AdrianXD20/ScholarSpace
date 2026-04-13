@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { X, LayoutGrid, BookOpen, LogOut } from 'lucide-react'
+import { X, LayoutGrid, BookOpen, User, LogOut } from 'lucide-react'
 import { cn } from '../../utils/helpers'
 import { useAuth } from '../../hooks/useAuth'
 import UserAvatar from '../../components/common/UserAvatar'
@@ -20,6 +20,7 @@ interface NavItem {
 const nav: NavItem[] = [
   { to: '/profesor', label: 'Panel Docente', icon: <LayoutGrid className="w-5 h-5" />, end: true },
   { to: '/profesor/clases', label: 'Mis Clases', icon: <BookOpen className="w-5 h-5" />, end: false },
+  { to: '/dashboard/profile', label: 'Mi Perfil', icon: <User className="w-5 h-5" />, end: false },
 ]
 
 export default function ProfesorSidebar({ isOpen, onClose }: ProfesorSidebarProps) {

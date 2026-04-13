@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Send } from 'lucide-react'
 import {
@@ -9,10 +9,15 @@ import {
   iconNotificacion,
 } from '../../assets/Icons'
 import { useAuth } from '../../hooks/useAuth'
+import { env } from '../../config/env'
 import { clasesService } from '../../services/clases.service'
 import { notesService } from '../../services/notes.service'
 import { userService } from '../../services/user.service'
 import { motivacionService } from '../../services/motivacion.service'
+import { usuarioService } from '../../services/usuario.service'
+import { logrosService } from '../../services/logros.service'
+import { actividadesService } from '../../services/actividades.service'
+import { notasService } from '../../services/notas.service'
 import Button from '../../components/ui/Button'
 import Card, { CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
 import { formatDate } from '../../utils/helpers'
@@ -25,27 +30,152 @@ export default function PortafolioEstudiante() {
   const [info, setInfo] = useState('')
   const [motivacionTick, setMotivacionTick] = useState(0)
 
-  const clase = claseId ? clasesService.getClaseById(claseId) : null
-  const alumno = estudianteId ? clasesService.getUserPublic(estudianteId) : null
-
-  const acceso =
-    clase &&
+  // --- Modo mock/local (localStorage) ---
+  const claseMock = claseId ? clasesService.getClaseById(claseId) : null
+  const alumnoMock = estudianteId ? clasesService.getUserPublic(estudianteId) : null
+  const accesoMock =
+    claseMock &&
     user?.id &&
-    clase.teacherId === user.id &&
+    claseMock.teacherId === user.id &&
     estudianteId &&
-    clase.estudianteIds.includes(estudianteId)
+    claseMock.estudianteIds.includes(estudianteId)
+
+  // --- Modo API ---
+  type StudentUI = { id: string; name: string; email: string; avatar?: string; career?: string }
+  const [isLoadingApi, setIsLoadingApi] = useState(false)
+  const [apiValid, setApiValid] = useState<boolean | null>(null)
+  const [claseNombreApi, setClaseNombreApi] = useState<string>('')
+  const [alumnoApi, setAlumnoApi] = useState<StudentUI | null>(null)
+
+  type NotaUI = { id: string | number; title: string }
+  type ActividadUI = { id: string | number; title: string; description: string; date: string; status: string; type: 'project' | 'activity' }
+  type LogroUI = { id: string | number; title: string; description: string; date: string; category: 'professional' | 'personal' | 'extracurricular' | 'academic' }
+
+  const [notasApi, setNotasApi] = useState<NotaUI[]>([])
+  const [actividadesApi, setActividadesApi] = useState<ActividadUI[]>([])
+  const [logrosApi, setLogrosApi] = useState<LogroUI[]>([])
+
+  useEffect(() => {
+    if (!claseId || !estudianteId || env.useMockAuth || !user?.id) return
+    let cancelled = false
+
+    const load = async () => {
+      setIsLoadingApi(true)
+      setApiValid(null)
+      try {
+        // 1) Validar que la clase pertenezca al docente.
+        const teacherClasses = await clasesService.getClasesByDocenteFromApi(user.id)
+        if (cancelled) return
+        if (!teacherClasses.ok || !teacherClasses.data) {
+          setApiValid(false)
+          return
+        }
+        const found = teacherClasses.data.find((c) => String(c.id) === String(claseId)) ?? null
+        if (!found) {
+          setApiValid(false)
+          return
+        }
+        setClaseNombreApi(String((found as any).nombre ?? 'Clase'))
+
+        // 2) Validar que el estudiante esté inscrito en la clase.
+        const alumnosRes = await clasesService.getAlumnosIdsFromClaseApi(found.id)
+        if (cancelled) return
+        const ids = alumnosRes.ok && alumnosRes.data ? alumnosRes.data.map(String) : []
+        if (!ids.includes(String(estudianteId))) {
+          setApiValid(false)
+          return
+        }
+
+        // 3) Cargar perfil del estudiante desde API.
+        const profile = await usuarioService.getProfile(estudianteId)
+        if (cancelled) return
+        const uData = profile.ok && profile.data ? profile.data : null
+        const alumno: StudentUI = {
+          id: String(estudianteId),
+          name: uData?.nombre ?? 'Alumno',
+          email: uData?.email ?? '',
+          avatar: uData?.foto_perfil ?? undefined,
+          career: (uData as any)?.carrera ?? undefined,
+        }
+        setAlumnoApi(alumno)
+
+        const studentIdNum = Number(estudianteId)
+
+        // 4) Cargar notas/actividades/logros y filtrar por estudiante.
+        const [notasRes, actsRes, logrosRes] = await Promise.all([
+          notasService.getNotas(),
+          actividadesService.getActividades(),
+          logrosService.getLogrosFromApi(),
+        ])
+        if (cancelled) return
+
+        setNotasApi(
+          notasRes.ok && notasRes.data
+            ? notasRes.data
+                .filter((n) => Number(n.usuario_id) === studentIdNum)
+                .map((n) => ({ id: n.id, title: n.titulo }))
+            : []
+        )
+
+        setActividadesApi(
+          actsRes.ok && actsRes.data
+            ? actsRes.data
+                .filter((a) => Number(a.usuario_id) === studentIdNum)
+                .map((a) => ({
+                  id: a.id,
+                  title: a.titulo,
+                  description: a.descripcion,
+                  date: a.fecha,
+                  status: a.estado,
+                  type: a.proyecto_id != null ? 'project' : 'activity',
+                }))
+            : []
+        )
+
+        const mapTipoToCategory = (tipo: unknown): LogroUI['category'] => {
+          const t = String(tipo ?? '').trim().toLowerCase()
+          if (t.includes('prof')) return 'professional'
+          if (t.includes('extra')) return 'extracurricular'
+          if (t.includes('acad')) return 'academic'
+          return 'personal'
+        }
+        setLogrosApi(
+          logrosRes.ok && logrosRes.data
+            ? logrosRes.data
+                .filter((l) => Number(l.usuario_id) === studentIdNum)
+                .map((l) => ({
+                  id: l.id,
+                  title: l.titulo,
+                  description: l.descripcion,
+                  date: l.fecha,
+                  category: mapTipoToCategory(l.tipo),
+                }))
+            : []
+        )
+
+        setApiValid(true)
+      } finally {
+        if (!cancelled) setIsLoadingApi(false)
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [claseId, estudianteId, user?.id])
 
   const notas = useMemo(
-    () => (estudianteId ? notesService.getNotes(estudianteId) : []),
-    [estudianteId]
+    () => (env.useMockAuth ? (estudianteId ? notesService.getNotes(estudianteId) : []) : notasApi),
+    [estudianteId, notasApi]
   )
   const logros = useMemo(
-    () => (estudianteId ? userService.getAchievements(estudianteId) : []),
-    [estudianteId]
+    () => (env.useMockAuth ? (estudianteId ? userService.getAchievements(estudianteId) : []) : logrosApi),
+    [estudianteId, logrosApi]
   )
   const actividades = useMemo(
-    () => (estudianteId ? userService.getActivities(estudianteId) : []),
-    [estudianteId]
+    () => (env.useMockAuth ? (estudianteId ? userService.getActivities(estudianteId) : []) : actividadesApi),
+    [estudianteId, actividadesApi]
   )
   const experiencias = useMemo(
     () => (estudianteId ? userService.getExperiences(estudianteId) : []),
@@ -76,8 +206,33 @@ export default function PortafolioEstudiante() {
     setEnviando(false)
   }
 
-  if (!claseId || !estudianteId || !acceso || !alumno) {
+  if (!claseId || !estudianteId) {
     return <Navigate to="/profesor/clases" replace />
+  }
+  const isMock = env.useMockAuth
+  if (isMock) {
+    if (!accesoMock || !alumnoMock || !claseMock) return <Navigate to="/profesor/clases" replace />
+  } else {
+    if (isLoadingApi || apiValid === null) {
+      return (
+        <div className="space-y-6 max-w-3xl mx-auto">
+          <p className="text-sm text-muted-foreground">Cargando portafolio del estudiante...</p>
+        </div>
+      )
+    }
+    if (!apiValid || !alumnoApi) return <Navigate to="/profesor/clases" replace />
+  }
+
+  let alumno: StudentUI
+  let claseNombre: string
+  if (isMock) {
+    const a = alumnoMock!
+    const c = claseMock!
+    alumno = { id: a.id, name: a.name, email: a.email, avatar: a.avatar, career: a.career }
+    claseNombre = c.nombre
+  } else {
+    alumno = alumnoApi!
+    claseNombre = claseNombreApi
   }
 
   return (
@@ -85,7 +240,7 @@ export default function PortafolioEstudiante() {
       <div>
         <p className="text-sm text-muted-foreground mb-1">
           <Link to={`/profesor/clases/${claseId}`} className="hover:text-foreground">
-            ← {clase!.nombre}
+            ← {claseNombre}
           </Link>
         </p>
         <h1 className="text-2xl font-bold text-foreground">{alumno.name}</h1>

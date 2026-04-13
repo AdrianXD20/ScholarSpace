@@ -117,14 +117,76 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
+
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    min-width: 0;
+  }
+
+  input,
+  textarea {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  span,
+  a,
+  li {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
 
 .lucide {
   color: #fff;
+}
+
+.page-shell {
+  width: 100%;
+  min-width: 0;
+  max-width: 96rem;
+  margin-inline: auto;
+}
+
+.content-safe {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }

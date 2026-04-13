@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Mail, Building, GraduationCap, Save, Users, Lock, Camera, Upload, X } from 'lucide-react'
+import { User, Mail, Building, GraduationCap, Save, Users, Lock, Camera, Upload } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -12,7 +12,7 @@ import { userService } from '../../services/user.service'
 import { usuarioService } from '../../services/usuario.service'
 import { authService } from '../../services/auth.service'
 import UserAvatar from '../../components/common/UserAvatar'
-import { formatDate, cn } from '../../utils/helpers'
+import { cn } from '../../utils/helpers'
 import { iconApuntes, iconLogros, iconActividades } from '../../assets/Icons'
 import type { UsuarioData } from '../../services/usuario.service'
 import { getPasswordChecklist, isPasswordValid } from '../../utils/authValidation'
@@ -87,11 +87,12 @@ export default function Profile() {
 
   const loadStats = async () => {
     const notasRes = await notasService.getNotas()
+    const userIdNum = Number(user.id)
 
     setStats({
       notes:
         notasRes.ok && notasRes.data
-          ? notasRes.data.filter(n => n.usuario_id === user.id).length
+          ? notasRes.data.filter((n) => Number(n.usuario_id) === userIdNum).length
           : 0,
       achievements: userService.getAchievements(user.id).length,
       activities: userService.getActivities(user.id).length,
@@ -272,7 +273,9 @@ export default function Profile() {
                 </div>
               )}
               {formData.bio && (
-                <p className="mt-3 text-sm text-muted-foreground">{formData.bio}</p>
+                <p className="mt-3 text-sm text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                  {formData.bio}
+                </p>
               )}
             </div>
           </div>
@@ -395,10 +398,11 @@ export default function Profile() {
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   disabled={!isEditing}
                   className={cn(
-                    'w-full px-4 py-2.5 rounded-lg bg-input border border-border',
+                    'w-full min-w-0 max-w-full px-4 py-2.5 rounded-lg bg-input border border-border',
                     'text-foreground placeholder:text-muted-foreground',
                     'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-                    'resize-none min-h-[100px]',
+                    'resize-y min-h-[100px]',
+                    'whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 />

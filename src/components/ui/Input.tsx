@@ -10,9 +10,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, ...props }, ref) => {
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 max-w-full flex-col gap-1.5">
         {label && (
-          <label htmlFor={id} className="text-sm font-extrabold text-[#000]">
+          <label htmlFor={id} className="max-w-full text-sm font-extrabold text-[#000]">
             {label}
           </label>
         )}
@@ -20,7 +20,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           className={cn(
-            'w-full px-4 py-2.5 rounded-sm bg-white border-2 border-[#000]',
+            'w-full min-w-0 max-w-full px-4 py-2.5 rounded-sm bg-white border-2 border-[#000]',
             'text-[#000] placeholder:text-[#94a3b8]',
             'focus:outline-none focus:ring-2 focus:ring-[#96c3e0] focus:border-[#96c3e0]',
             'transition-all duration-150',
@@ -30,7 +30,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {error && <span className="text-sm font-semibold text-[#ff7b7b]">{error}</span>}
+        {error && <span className="max-w-full text-sm font-semibold text-[#ff7b7b]">{error}</span>}
       </div>
     )
   }

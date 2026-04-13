@@ -80,13 +80,18 @@ export default function AppRouter() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <StudentDashboardShell>
-                <DashboardLayout />
-              </StudentDashboardShell>
+              <DashboardLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route
+            index
+            element={
+              <StudentDashboardShell>
+                <Dashboard />
+              </StudentDashboardShell>
+            }
+          />
           <Route path="notes" element={<Notes />} />
           <Route path="projects" element={<Projects />} />
           <Route path="achievements" element={<Achievements />} />

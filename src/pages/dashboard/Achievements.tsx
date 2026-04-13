@@ -31,10 +31,11 @@ const tipoLogroApiByCategory: Record<Achievement['category'], 'Academico' | 'Ext
 function normalizeCategory(raw: string): Achievement['category'] {
   // Unifica categorías que vienen de distintas fuentes (API vs localStorage).
   // Soporta: `academic`/`Academico`, `extracurricular`/`Extracurricular`, etc.
-  const base = raw
-    ?.trim()
+  const base = String(raw ?? '')
+    .trim()
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    // Evita Unicode property escapes para máxima compatibilidad.
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 
   if (base === 'academico' || base === 'academic') return 'academic'
