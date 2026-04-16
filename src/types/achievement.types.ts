@@ -1,5 +1,7 @@
 export interface Achievement {
   id: string
+  /** ID real del logro en backend (si existe). */
+  apiId?: number | string
   title: string
   description: string
   date: string

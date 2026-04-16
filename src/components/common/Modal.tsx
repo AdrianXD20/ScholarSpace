@@ -17,21 +17,42 @@ export default function Modal({ isOpen, onClose, title, children, className }: M
       if (e.key === 'Escape') onClose()
     }
 
+    const scrollY = window.scrollY
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyPosition = document.body.style.position
+    const previousBodyTop = document.body.style.top
+    const previousBodyWidth = document.body.style.width
+    const previousHtmlOverflow = document.documentElement.style.overflow
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape)
+      // Bloquea scroll del fondo de forma robusta (body + html).
       document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
+
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.position = previousBodyPosition
+      document.body.style.top = previousBodyTop
+      document.body.style.width = previousBodyWidth
+      document.documentElement.style.overflow = previousHtmlOverflow
+
+      if (isOpen) {
+        window.scrollTo(0, scrollY)
+      }
     }
   }, [isOpen, onClose])
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
@@ -39,7 +60,7 @@ export default function Modal({ isOpen, onClose, title, children, className }: M
       />
       <div 
         className={cn(
-          'relative z-10 w-full max-w-lg bg-white rounded-sm border-2 border-[#000]',
+          'relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-sm border-2 border-[#000]',
           'shadow-[8px_8px_0_rgba(0,0,0,0.18)]',
           className
         )}

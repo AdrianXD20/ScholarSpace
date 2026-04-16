@@ -34,6 +34,22 @@ export const logrosService = {
     }
   },
 
+  async updateLogro(
+    id: number | string,
+    payload: Partial<CreateLogroRequest>
+  ): Promise<{ ok: boolean; data?: LogroApi; error?: string }> {
+    try {
+      const data = await httpClient<LogroApi>(`${endpoints.logros.list}/${id}`, {
+        method: 'PUT',
+        body: payload,
+      })
+      return { ok: true, data }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'No se pudo actualizar el logro'
+      return { ok: false, error: msg }
+    }
+  },
+
   async getLogrosFromApi(): Promise<{ ok: boolean; data?: LogroApi[]; error?: string }> {
     try {
       const res = await httpClient<unknown>(endpoints.logros.list, {

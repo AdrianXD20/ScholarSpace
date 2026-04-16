@@ -20,6 +20,15 @@ export const userService = {
     return newItem
   },
 
+  updateAchievement(id: string, data: Partial<Achievement>): Achievement | null {
+    const items = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY) || '[]')
+    const index = items.findIndex((item: Achievement) => item.id === id)
+    if (index === -1) return null
+    items[index] = { ...items[index], ...data }
+    localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(items))
+    return items[index]
+  },
+
   deleteAchievement(id: string): boolean {
     const items = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY) || '[]')
     const filtered = items.filter((item: Achievement) => item.id !== id)

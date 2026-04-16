@@ -6,21 +6,14 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
-import { userService } from '../../services/user.service'
 import { actividadesService } from '../../services/actividades.service'
 import type { ActividadApi } from '../../services/actividades.service'
-import type { Activity } from '../../types/achievement.types'
 import { formatDate, cn } from '../../utils/helpers'
 import { proyectosService } from '../../services/proyectos.service'
 import { clasesService } from '../../services/clases.service'
 
-const typeOptions = [
-  { value: 'event', label: 'Evento' },
-  { value: 'project', label: 'Proyecto' },
-  { value: 'course', label: 'Curso' },
-  { value: 'workshop', label: 'Taller' },
-  { value: 'volunteer', label: 'Voluntariado' },
-] as const
+const MAX_TITLE_LENGTH = 120
+const MAX_DESCRIPTION_LENGTH = 500
 
 const statusOptions = [
   { value: 'Completado', label: 'Completado', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
@@ -28,8 +21,13 @@ const statusOptions = [
   { value: 'Planeado', label: 'Planeado', icon: Target, color: 'text-primary', bg: 'bg-primary/10' },
 ] as const
 
-interface ActividadLocal extends Omit<Activity, 'status'> {
+interface ActividadView {
+  id: string
   apiId?: number
+  title: string
+  description: string
+  date: string
+  userId: string
   proyectoId?: number
   claseId?: number
   proyectoNombre?: string
@@ -37,12 +35,24 @@ interface ActividadLocal extends Omit<Activity, 'status'> {
   status: string
 }
 
+function normalizeStatus(raw: string): string {
+  const base = String(raw ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (base === 'completado' || base === 'completed') return 'Completado'
+  if (base === 'en progreso' || base === 'in progress' || base === 'in-progress') return 'En progreso'
+  if (base === 'planeado' || base === 'planned') return 'Planeado'
+  return 'Planeado'
+}
+
 export default function Activities() {
   const { user } = useAuth()
   const [activities, setActivitie] = useState<ActividadApi[]>([])
-  const [activitiesLocal, setActivitiesLocal] = useState<ActividadLocal[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingActivity, setEditingActivity] = useState<ActividadLocal | null>(null)
+  const [editingActivity, setEditingActivity] = useState<ActividadView | null>(null)
   const [isSavingActivity, setIsSavingActivity] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [isLoadingApi, setIsLoadingApi] = useState(false)
@@ -51,7 +61,7 @@ export default function Activities() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'project' as Activity['type'],
+    date: new Date().toISOString().slice(0, 10),
     status: 'Planeado',
     proyectoId: '',
     claseId: '',
@@ -113,13 +123,6 @@ export default function Activities() {
   }, [user?.id])
 
   useEffect(() => {
-    if (user?.id) {
-      const local = userService.getActivities(user.id)
-      setActivitiesLocal(local)
-    }
-  }, [user?.id])
-
-  useEffect(() => {
     if (!isModalOpen) return
     if (proyectos.length === 0) return
     if (formData.proyectoId !== '') return
@@ -135,28 +138,24 @@ export default function Activities() {
     setFormData((prev) => ({ ...prev, claseId: String(clases[0].id) }))
   }, [isModalOpen, clases, formData.claseId])
 
-  const allActivities = [
-    ...activities.map((a) => {
-      const proyecto = proyectos.find(p => p.id === a.proyecto_id)
-      const clase = clases.find(c => c.id === a.clase_id)
+  const allActivities: ActividadView[] = activities.map((a) => {
+    const proyecto = proyectos.find((p) => p.id === a.proyecto_id)
+    const clase = clases.find((c) => c.id === a.clase_id)
 
-      return {
-        id: `api-${a.id}`,
-        apiId: a.id,
-        title: a.titulo,
-        description: a.descripcion,
-        date: a.fecha,
-        type: 'project' as Activity['type'],
-        status: a.estado,
-        userId: String(a.usuario_id),
-        proyectoId: a.proyecto_id,
-        claseId: a.clase_id,
-        proyectoNombre: proyecto?.titulo || 'Sin proyecto',
-        claseNombre: clase?.nombre || 'Sin clase',
-      }
-    }),
-    ...activitiesLocal,
-  ]
+    return {
+      id: `api-${a.id}`,
+      apiId: a.id,
+      title: a.titulo,
+      description: a.descripcion,
+      date: a.fecha,
+      status: normalizeStatus(a.estado),
+      userId: String(a.usuario_id),
+      proyectoId: a.proyecto_id,
+      claseId: a.clase_id,
+      proyectoNombre: proyecto?.titulo || 'Sin proyecto',
+      claseNombre: clase?.nombre || 'Sin clase',
+    }
+  })
 
   const filteredActivities = filterStatus
     ? allActivities.filter((a) => a.status === filterStatus)
@@ -164,6 +163,10 @@ export default function Activities() {
 
   const handleSubmit = async () => {
     if (!user?.id || !formData.title.trim()) return
+    if (!formData.date) {
+      alert('Debes seleccionar una fecha para la actividad.')
+      return
+    }
 
     if (proyectos.length === 0 || !formData.proyectoId) {
       alert('Debes seleccionar un proyecto para esta actividad.')
@@ -180,7 +183,7 @@ export default function Activities() {
     const payload = {
       titulo: formData.title.trim(),
       descripcion: formData.description.trim(),
-      fecha: editingActivity?.date || new Date().toISOString(),
+      fecha: formData.date,
       estado: formData.status,
       usuario_id: Number(user.id),
       proyecto_id: Number(formData.proyectoId),
@@ -188,7 +191,13 @@ export default function Activities() {
     }
 
     if (editingActivity?.apiId) {
-      const result = await actividadesService.updateActividad(editingActivity.apiId, payload)
+      const updatePayload = {
+        titulo: payload.titulo,
+        descripcion: payload.descripcion,
+        fecha: payload.fecha,
+        estado: payload.estado,
+      }
+      const result = await actividadesService.updateActividad(editingActivity.apiId, updatePayload)
       setIsSavingActivity(false)
       if (result.ok) {
         await loadActivities()
@@ -208,25 +217,14 @@ export default function Activities() {
       }
     }
 
-    setFormData({ title: '', description: '', type: 'project', status: 'Planeado', proyectoId: '', claseId: '' })
-  }
-
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    if (!user?.id) return
-
-    if (id.startsWith('api-')) {
-      const apiId = Number(id.replace('api-', ''))
-      const result = await actividadesService.updateActividad(apiId, { estado: newStatus })
-      if (result.ok) {
-        setActivitie((prev) =>
-          prev.map((a) => (a.id === apiId ? { ...a, estado: newStatus } : a))
-        )
-      }
-      return
-    }
-
-    userService.updateActivity(id, { status: newStatus as Activity['status'] })
-    setActivitiesLocal(userService.getActivities(user.id))
+    setFormData({
+      title: '',
+      description: '',
+      date: new Date().toISOString().slice(0, 10),
+      status: 'Planeado',
+      proyectoId: '',
+      claseId: '',
+    })
   }
 
   const handleDelete = async (id: string) => {
@@ -234,19 +232,13 @@ export default function Activities() {
 
     if (!confirm('¿Estás seguro de eliminar esta actividad?')) return
 
-    if (id.startsWith('api-')) {
-      const apiId = Number(id.replace('api-', ''))
-      const result = await actividadesService.deleteActividad(apiId)
-      if (result.ok) {
-        await loadActivities()
-      } else {
-        alert(result.error ?? 'No se pudo eliminar la actividad')
-      }
-      return
+    const apiId = Number(id.replace('api-', ''))
+    const result = await actividadesService.deleteActividad(apiId)
+    if (result.ok) {
+      await loadActivities()
+    } else {
+      alert(result.error ?? 'No se pudo eliminar la actividad')
     }
-
-    userService.deleteActivity(id)
-    setActivitiesLocal(userService.getActivities(user.id))
   }
 
   const getStatusInfo = (status: string) => {
@@ -265,7 +257,7 @@ export default function Activities() {
     setFormData({
       title: '',
       description: '',
-      type: 'project',
+      date: new Date().toISOString().slice(0, 10),
       status: 'Planeado',
       proyectoId: proyectos.length > 0 ? String(proyectos[0].id) : '',
       claseId: clases.length > 0 ? String(clases[0].id) : '',
@@ -315,7 +307,7 @@ export default function Activities() {
 
             return (
               <Card
-                key={activity.id}
+                key={`${activity.id}-${activity.date}`}
                 variant="bordered"
                 className="group hover:border-primary/50 transition-colors"
               >
@@ -343,9 +335,6 @@ export default function Activities() {
                             >
                               {statusInfo.label}
                             </span>
-                            <span className="text-xs text-muted-foreground capitalize">
-                              {activity.type}
-                            </span>
                             <span className="text-xs text-muted-foreground">
                               {formatDate(activity.date)}
                             </span>
@@ -358,7 +347,7 @@ export default function Activities() {
                               setFormData({
                                 title: activity.title,
                                 description: activity.description,
-                                type: activity.type,
+                                date: activity.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
                                 status: activity.status,
                                 proyectoId: String(activity.proyectoId ?? ''),
                                 claseId: String(activity.claseId ?? ''),
@@ -392,22 +381,6 @@ export default function Activities() {
                           Clase: {activity.claseNombre}
                         </p>
                       )}
-                      <div className="flex gap-2 mt-3">
-                        {statusOptions.map((status) => (
-                          <button
-                            key={status.value}
-                            onClick={() => handleStatusChange(activity.id, status.value as string)}
-                            className={cn(
-                              'px-2 py-1 text-xs rounded-lg transition-colors',
-                              (activity.status as string) === (status.value as string)
-                                ? `${status.bg} ${status.color}`
-                                : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                            )}
-                          >
-                            {status.label}
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -454,16 +427,19 @@ export default function Activities() {
             label="Titulo"
             placeholder="Ej: Proyecto de investigación"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value.slice(0, MAX_TITLE_LENGTH) })}
             required
           />
+          <p className="text-xs text-muted-foreground text-right -mt-2">
+            {formData.title.length}/{MAX_TITLE_LENGTH}
+          </p>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Descripcion</label>
             <textarea
               placeholder="Describe la actividad..."
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, MAX_DESCRIPTION_LENGTH) })}
               className={cn(
                 'w-full px-4 py-2.5 rounded-lg bg-input border border-border',
                 'text-foreground placeholder:text-muted-foreground',
@@ -471,24 +447,21 @@ export default function Activities() {
                 'resize-none min-h-[100px]'
               )}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Tipo</label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as Activity['type'] })}
-                className="w-full px-4 py-2.5 rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {typeOptions.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+              <label className="text-sm font-medium text-foreground">Fecha</label>
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                required
+              />
             </div>
-
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Estado</label>
               <select

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Award, Star, Briefcase, Trash2, Trophy } from 'lucide-react'
+import { Plus, Award, Star, Briefcase, Trash2, Trophy, Edit } from 'lucide-react'
 import { iconLogros } from '../../assets/Icons'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -20,6 +20,9 @@ const categoryOptions = [
   { value: 'personal', label: 'Personal', icon: Trophy, color: 'text-green-400', bg: 'bg-green-400/10' },
   { value: 'professional', label: 'Profesional', icon: Briefcase, color: 'text-orange-400', bg: 'bg-orange-400/10' },
 ] as const
+
+const MAX_TITLE_LENGTH = 120
+const MAX_DESCRIPTION_LENGTH = 500
 
 const tipoLogroApiByCategory: Record<Achievement['category'], 'Academico' | 'Extracurricular' | 'Personal' | 'Profesional'> = {
   academic: 'Academico',
@@ -53,10 +56,12 @@ export default function Achievements() {
   const [projects, setProjects] = useState<ProyectoApi[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    date: new Date().toISOString().slice(0, 10),
     category: 'academic' as Achievement['category'],
     proyectoId: '' as number | '',
   })
@@ -118,6 +123,11 @@ export default function Achievements() {
   const handleSubmit = async () => {
     if (!user?.id || !formData.title.trim()) return
 
+    if (!formData.date) {
+      alert('Selecciona la fecha del logro.')
+      return
+    }
+
     if (projects.length === 0 || formData.proyectoId === '') {
       alert('Selecciona un proyecto para asociar este logro.')
       return
@@ -125,12 +135,11 @@ export default function Achievements() {
 
     const usuario_id = Number(user.id)
     const proyecto_id = Number(formData.proyectoId)
-    const fecha = new Date().toISOString().slice(0, 10)
 
     const payload = {
       titulo: formData.title.trim(),
-      descripcion: formData.description,
-      fecha,
+      descripcion: formData.description.trim(),
+      fecha: formData.date,
       tipo: tipoLogroApiByCategory[formData.category],
       usuario_id,
       proyecto_id,
@@ -138,27 +147,53 @@ export default function Achievements() {
 
     setIsSubmitting(true)
     try {
-      const res = await logrosService.createLogro(payload)
-      if (!res.ok) {
-        alert(res.error ?? 'No se pudo crear el logro')
-        return
-      }
+      if (editingAchievement) {
+        if (editingAchievement.apiId) {
+          const updateRes = await logrosService.updateLogro(editingAchievement.apiId, payload)
+          if (!updateRes.ok) {
+            alert(updateRes.error ?? 'No se pudo actualizar el logro')
+            return
+          }
+        }
 
-      // Mantener coherencia con la UI actual (logros de localStorage).
-      userService.createAchievement(
-        {
+        userService.updateAchievement(editingAchievement.id, {
           title: payload.titulo,
           description: payload.descripcion,
           date: payload.fecha,
           category: formData.category,
           proyecto_id: payload.proyecto_id,
-        },
-        user.id
-      )
+        })
+      } else {
+        const res = await logrosService.createLogro(payload)
+        if (!res.ok) {
+          alert(res.error ?? 'No se pudo crear el logro')
+          return
+        }
+
+        // Mantener coherencia con la UI actual (logros de localStorage).
+        userService.createAchievement(
+          {
+            apiId: res.data?.id,
+            title: payload.titulo,
+            description: payload.descripcion,
+            date: payload.fecha,
+            category: formData.category,
+            proyecto_id: payload.proyecto_id,
+          },
+          user.id
+        )
+      }
 
       loadAchievements()
       setIsModalOpen(false)
-      setFormData({ title: '', description: '', category: 'academic', proyectoId: '' })
+      setEditingAchievement(null)
+      setFormData({
+        title: '',
+        description: '',
+        date: new Date().toISOString().slice(0, 10),
+        category: 'academic',
+        proyectoId: '',
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -176,10 +211,15 @@ export default function Achievements() {
   }
 
   const openModal = () => {
+    setEditingAchievement(null)
     setIsModalOpen(true)
-    if (projects.length > 0 && formData.proyectoId === '') {
-      setFormData((prev) => ({ ...prev, proyectoId: projects[0].id }))
-    }
+    setFormData({
+      title: '',
+      description: '',
+      date: new Date().toISOString().slice(0, 10),
+      category: 'academic',
+      proyectoId: projects.length > 0 ? projects[0].id : '',
+    })
   }
 
   return (
@@ -228,13 +268,32 @@ export default function Achievements() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold text-foreground line-clamp-1">{achievement.title}</h3>
-                        <button
-                          onClick={() => handleDelete(achievement.id)}
-                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
-                          aria-label="Eliminar logro"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingAchievement(achievement)
+                              setFormData({
+                                title: achievement.title,
+                                description: achievement.description,
+                                date: achievement.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+                                category: achievement.category,
+                                proyectoId: achievement.proyecto_id ?? (projects.length > 0 ? projects[0].id : ''),
+                              })
+                              setIsModalOpen(true)
+                            }}
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary/10 transition-all"
+                            aria-label="Editar logro"
+                          >
+                            <Edit className="w-4 h-4 text-primary" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(achievement.id)}
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
+                            aria-label="Eliminar logro"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </button>
+                        </div>
                       </div>
                       <span className={cn('inline-block mt-1 px-2 py-0.5 text-xs rounded-full', categoryInfo.bg, categoryInfo.color)}>
                         {categoryInfo.label}
@@ -272,7 +331,14 @@ export default function Achievements() {
       )}
 
       {/* Create Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Agregar Logro">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingAchievement(null)
+        }}
+        title={editingAchievement ? 'Editar Logro' : 'Agregar Logro'}
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -283,16 +349,29 @@ export default function Achievements() {
             label="Titulo del logro"
             placeholder="Ej: Primer lugar en concurso de ciencias"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                title: e.target.value.slice(0, MAX_TITLE_LENGTH),
+              })
+            }
             required
           />
+          <p className="text-xs text-muted-foreground text-right -mt-2">
+            {formData.title.length}/{MAX_TITLE_LENGTH}
+          </p>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Descripcion</label>
             <textarea
               placeholder="Describe tu logro..."
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  description: e.target.value.slice(0, MAX_DESCRIPTION_LENGTH),
+                })
+              }
               className={cn(
                 'w-full px-4 py-2.5 rounded-lg bg-input border border-border',
                 'text-foreground placeholder:text-muted-foreground',
@@ -300,31 +379,41 @@ export default function Achievements() {
                 'resize-none min-h-[100px]'
               )}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
+            </p>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Categoria</label>
-            <div className="grid grid-cols-2 gap-2">
-              {categoryOptions.map((cat) => {
-                const IconComponent = cat.icon
-                return (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, category: cat.value })}
-                    className={cn(
-                      'flex items-center gap-2 p-3 rounded-lg border transition-colors',
-                      formData.category === cat.value
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:bg-secondary'
-                    )}
-                  >
-                    <IconComponent className={cn('w-4 h-4 text-black dark:text-white')} />
-                    <span className="text-sm text-foreground">{cat.label}</span>
-                  </button>
-                )
-              })}
-            </div>
+            <select
+              className={cn(
+                'w-full px-4 py-2.5 rounded-lg bg-input border border-border',
+                'text-foreground placeholder:text-muted-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent'
+              )}
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as Achievement['category'] })}
+            >
+              {categoryOptions.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Categoria seleccionada: <span className="font-medium">{getCategoryInfo(formData.category).label}</span>
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Fecha</label>
+            <Input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              required
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -369,7 +458,7 @@ export default function Achievements() {
               isLoading={isSubmitting}
               disabled={projects.length === 0 || formData.proyectoId === ''}
             >
-              Agregar Logro
+              {editingAchievement ? 'Actualizar Logro' : 'Agregar Logro'}
             </Button>
           </div>
         </form>
