@@ -43,16 +43,18 @@ export function ToastComponent({ toast, onClose }: ToastComponentProps) {
             <polyline points="20 6 9 17 4 12" strokeDasharray="100" strokeDashoffset="100" />
           </svg>
         ) : toast.type === 'error' ? (
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="18" fontWeight="bold">✕</text>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M7 7l10 10M17 7L7 17" />
           </svg>
         ) : toast.type === 'warning' ? (
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="18" fontWeight="bold">⚠</text>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 3L2.5 20.5h19L12 3z" />
+            <path d="M12 9v6M12 18h.01" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="18" fontWeight="bold">ℹ</text>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 10v6M12 7h.01" />
           </svg>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Mail, Building, GraduationCap, Save, Users, Lock, Camera, Upload } from 'lucide-react'
+import { User, Mail, Save, Users, Lock, Camera, Upload } from 'lucide-react'
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -12,7 +12,6 @@ import { userService } from '../../services/user.service'
 import { usuarioService } from '../../services/usuario.service'
 import { authService } from '../../services/auth.service'
 import UserAvatar from '../../components/common/UserAvatar'
-import { cn } from '../../utils/helpers'
 import { iconApuntes, iconLogros, iconActividades } from '../../assets/Icons'
 import type { UsuarioData } from '../../services/usuario.service'
 import { getPasswordChecklist, isPasswordValid } from '../../utils/authValidation'
@@ -42,9 +41,6 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
-    institution: '',
-    career: '',
-    bio: '',
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -72,9 +68,6 @@ export default function Profile() {
         setFormData({
           nombre: result.data.nombre || user.name || '',
           email: result.data.email || user.email || '',
-          institution: user.institution || '',
-          career: user.career || '',
-          bio: user.bio || '',
         })
       }
       setIsLoadingProfile(false)
@@ -107,8 +100,8 @@ export default function Profile() {
     
     setIsSaving(true)
     const payload = {
-      nombre: formData.nombre,
-      email: formData.email,
+      nombre: formData.nombre.trim(),
+      email: formData.email.trim(),
     }
     
     const result = await usuarioService.updateProfile(user.id, payload)
@@ -256,27 +249,6 @@ export default function Profile() {
                   {ROLE_LABEL[user.role]}
                 </span>
               )}
-              {(formData.institution || formData.career) && (
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2">
-                  {formData.institution && (
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Building className="w-4 h-4" />
-                      {formData.institution}
-                    </span>
-                  )}
-                  {formData.career && (
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <GraduationCap className="w-4 h-4" />
-                      {formData.career}
-                    </span>
-                  )}
-                </div>
-              )}
-              {formData.bio && (
-                <p className="mt-3 text-sm text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                  {formData.bio}
-                </p>
-              )}
             </div>
           </div>
         </CardContent>
@@ -365,49 +337,6 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="relative">
-                  <Building className="absolute left-3 top-9 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    label="Institucion"
-                    placeholder="Tu institucion educativa"
-                    value={formData.institution}
-                    onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                    className="pl-10"
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div className="relative">
-                  <GraduationCap className="absolute left-3 top-9 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    label="Carrera"
-                    placeholder="Tu carrera o programa"
-                    value={formData.career}
-                    onChange={(e) => setFormData({ ...formData, career: e.target.value })}
-                    className="pl-10"
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-foreground">Biografia</label>
-                <textarea
-                  placeholder="Cuentanos sobre ti..."
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  disabled={!isEditing}
-                  className={cn(
-                    'w-full min-w-0 max-w-full px-4 py-2.5 rounded-lg bg-input border border-border',
-                    'text-foreground placeholder:text-muted-foreground',
-                    'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-                    'resize-y min-h-[100px]',
-                    'whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                />
-              </div>
-
               {isEditing && (
                 <div className="flex gap-3 pt-2">
                   <Button
@@ -418,9 +347,6 @@ export default function Profile() {
                       setFormData({
                         nombre: userData?.nombre || user?.name || '',
                         email: userData?.email || user?.email || '',
-                        institution: user?.institution || '',
-                        career: user?.career || '',
-                        bio: user?.bio || '',
                       })
                     }}
                     className="flex-1"

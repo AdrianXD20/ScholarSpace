@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import './auth-notebook.css';
+@import './alert-animations.css';
 
 @custom-variant dark (&:is(.dark *));
 

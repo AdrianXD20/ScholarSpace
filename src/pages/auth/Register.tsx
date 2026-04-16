@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Mail,
@@ -7,8 +7,6 @@ import {
   User,
   Building,
   GraduationCap,
-  School,
-  Award,
   Hash,
   CheckCircle2,
   XCircle,
@@ -18,7 +16,6 @@ import Input from '../../components/ui/Input'
 import AuthNotebookLayout from '../../components/auth/AuthNotebookLayout'
 import { useAuth } from '../../hooks/useAuth'
 import { authService } from '../../services/auth.service'
-import type { AccountType } from '../../types/user.types'
 import {
   AUTH_LIMITS,
   getPasswordChecklist,
@@ -28,9 +25,7 @@ import {
 
 export default function Register() {
   const navigate = useNavigate()
-  const { register } = useAuth()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [accountType, setAccountType] = useState<AccountType>('student')
+  const { register, isLoading } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,10 +34,6 @@ export default function Register() {
     institution: '',
     career: '',
     codigoClase: '',
-    titulacionAcademica: '',
-    departamento: '',
-    anosExperiencia: '',
-    cargo: '',
   })
   const [error, setError] = useState('')
   const [emailError, setEmailError] = useState('')
@@ -82,7 +73,8 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
     setError('')
 
     if (!formData.name || !formData.email || !formData.password) {
@@ -120,46 +112,20 @@ export default function Register() {
       return
     }
 
-    if (accountType === 'teacher') {
-      if (!formData.titulacionAcademica.trim() || !formData.departamento.trim()) {
-        setError('Titulación y departamento son obligatorios para docentes.')
-        return
-      }
-      const anos = Number(formData.anosExperiencia)
-      if (formData.anosExperiencia === '' || Number.isNaN(anos) || anos < 0) {
-        setError('Indica años válidos de experiencia docente (0 o más).')
-        return
-      }
-    }
+    const result = await register({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      institution: formData.institution,
+      career: formData.career,
+      accountType: 'student',
+      codigoClase: formData.codigoClase || undefined,
+    })
 
-    setIsSubmitting(true)
-    try {
-      const result = await register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        institution: formData.institution,
-        career: formData.career,
-        accountType,
-        codigoClase: accountType === 'student' ? formData.codigoClase : undefined,
-        perfilDocente:
-          accountType === 'teacher'
-            ? {
-                titulacionAcademica: formData.titulacionAcademica.trim(),
-                departamento: formData.departamento.trim(),
-                anosExperiencia: Number(formData.anosExperiencia),
-                cargo: formData.cargo.trim() || undefined,
-              }
-            : undefined,
-      })
-
-      if (result.ok) {
-        navigate('/login', { replace: true, state: { registeredOk: true } })
-      } else {
-        setError(result.error ?? 'No se pudo completar el registro.')
-      }
-    } finally {
-      setIsSubmitting(false)
+    if (result.ok) {
+      navigate('/login', { replace: true, state: { registeredOk: true } })
+    } else {
+      setError(result.error ?? 'No se pudo completar el registro.')
     }
   }
 
@@ -174,45 +140,15 @@ export default function Register() {
           <span className="auth-sketch-highlighter">cuenta</span>
         </>
       }
-      subtitle="Estudiante o docente: elige tu perfil y completa los datos"
+      subtitle="Estudiante: completa los datos"
     >
       <div className="space-y-1 mb-6">
         <h2 className="text-xl font-black text-[var(--sketch-ink)] uppercase tracking-wide">Registro</h2>
-        <p className="text-sm text-[var(--sketch-ink)]/75">
-          Los docentes deben indicar titulación y experiencia para validar su perfil.
-        </p>
+        
       </div>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-        }}
-        className="flex flex-col gap-4"
-      >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && <div className="p-3 text-sm font-medium auth-sketch-alert-error">{error}</div>}
-
-        <div className="grid grid-cols-2 gap-0 border-2 border-[var(--sketch-ink)]">
-          <button
-            type="button"
-            onClick={() => setAccountType('student')}
-            className={`flex items-center justify-center gap-2 py-3 text-sm font-black uppercase tracking-wide border-r-2 border-[var(--sketch-ink)] transition-colors ${
-              accountType === 'student' ? 'bg-[var(--sketch-green)]' : 'bg-white hover:bg-[var(--sketch-yellow)]/40'
-            }`}
-          >
-            <School className="w-4 h-4" />
-            Estudiante
-          </button>
-          <button
-            type="button"
-            onClick={() => setAccountType('teacher')}
-            className={`flex items-center justify-center gap-2 py-3 text-sm font-black uppercase tracking-wide transition-colors ${
-              accountType === 'teacher' ? 'bg-[var(--sketch-green)]' : 'bg-white hover:bg-[var(--sketch-yellow)]/40'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            Docente
-          </button>
-        </div>
 
         <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
@@ -320,31 +256,6 @@ export default function Register() {
               )}
 
         <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
-                <Input
-                  name="institution"
-                  placeholder="Institución educativa (opcional)"
-                  value={formData.institution}
-                  onChange={handleChange}
-                  className="pl-10 auth-sketch-input"
-                  aria-label="Institucion educativa"
-                />
-              </div>
-
-        <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
-                <Input
-                  name="career"
-                  placeholder="Carrera o programa (opcional)"
-                  value={formData.career}
-                  onChange={handleChange}
-                  className="pl-10 auth-sketch-input"
-                  aria-label="Carrera o programa"
-                />
-              </div>
-
-        {accountType === 'student' && (
-                <div className="relative">
                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--sketch-ink)]" />
                   <Input
                     name="codigoClase"
@@ -358,54 +269,10 @@ export default function Register() {
                     Si tu profesor te dio un código, introdúcelo aquí o más tarde en tu perfil.
                   </p>
                 </div>
-              )}
-
-        {accountType === 'teacher' && (
-                <div className="space-y-4 border-2 border-[var(--sketch-ink)] p-4 bg-[var(--sketch-yellow)]/25">
-                  <p className="text-sm font-black text-[var(--sketch-ink)] uppercase tracking-wide">
-                    Datos de docente
-                  </p>
-                  <Input
-                    name="titulacionAcademica"
-                    label="Titulación académica *"
-                    placeholder="Ej. Lic. en Matemáticas"
-                    value={formData.titulacionAcademica}
-                    onChange={handleChange}
-                    className="auth-sketch-input"
-                  />
-                  <Input
-                    name="departamento"
-                    label="Departamento o área *"
-                    placeholder="Ej. Ciencias exactas"
-                    value={formData.departamento}
-                    onChange={handleChange}
-                    className="auth-sketch-input"
-                  />
-                  <Input
-                    name="anosExperiencia"
-                    label="Años de experiencia docente *"
-                    type="number"
-                    min={0}
-                    placeholder="0"
-                    value={formData.anosExperiencia}
-                    onChange={handleChange}
-                    className="auth-sketch-input"
-                  />
-                  <Input
-                    name="cargo"
-                    label="Cargo (opcional)"
-                    placeholder="Ej. Profesor auxiliar"
-                    value={formData.cargo}
-                    onChange={handleChange}
-                    className="auth-sketch-input"
-                  />
-                </div>
-              )}
 
         <Button
-                type="button"
-                onClick={() => void handleSubmit()}
-                isLoading={isSubmitting}
+                type="submit"
+                isLoading={isLoading}
                 className="w-full mt-2 auth-sketch-btn focus:ring-offset-[var(--sketch-paper)]"
                 disabled={emailTaken || isCheckingEmail}
               >
@@ -422,4 +289,3 @@ export default function Register() {
     </AuthNotebookLayout>
   )
 }
-

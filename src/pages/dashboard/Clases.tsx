@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Copy, CheckCircle, BookOpen } from 'lucide-react'
+import { Plus, Copy, BookOpen, Check } from 'lucide-react'
 import Card, { CardContent } from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -21,6 +21,8 @@ export default function Clases() {
   const [joinedIds, setJoinedIds] = useState<number[]>([])
 
   const availableClases = clases.filter((c) => !joinedIds.includes(c.id))
+  const joinedClases = clases.filter((c) => joinedIds.includes(c.id))
+  const normalizeCode = (value: string) => value.trim().toLowerCase()
 
   const loadClases = async () => {
     setIsLoading(true)
@@ -39,28 +41,53 @@ export default function Clases() {
     loadClases()
   }, [])
 
-  const handleCopyCode = (codigo: string, id: number) => {
-    navigator.clipboard.writeText(codigo)
-    setCopiedId(id)
-    toast.success('¡Copiado!', `Código: ${codigo}`)
-    setTimeout(() => setCopiedId(null), 2000)
+  const handleCopyCode = async (codigo: string, id: number) => {
+    try {
+      await navigator.clipboard.writeText(codigo)
+      setCopiedId(id)
+      toast.success('¡Copiado!', `Código: ${codigo}`)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch {
+      toast.error('Error', 'No se pudo copiar el código automáticamente')
+    }
   }
 
-  const handleJoinByCodigo = async (codigo: string) => {
+  const joinClass = async (codigo: string, claseId?: number) => {
+    const normalizedCode = normalizeCode(codigo)
+    const localJoinedById = claseId != null && joinedIds.includes(claseId)
+    const localJoinedByCode = joinedClases.some((clase) => normalizeCode(clase.codigo) === normalizedCode)
+    if (localJoinedById || localJoinedByCode) {
+      toast.info('Información', 'Ya perteneces a esta clase')
+      return false
+    }
+
     setIsJoining(true)
     const toastId = toast.loading('Uniéndote a la clase...', 'Por favor espera')
-    
     const result = await clasesService.joinClaseFromApi(codigo.trim())
     setIsJoining(false)
 
     if (result.ok) {
+      if (claseId != null) {
+        clasesService.addJoinedClassId(claseId)
+      }
       setJoinedIds(clasesService.getJoinedClassIds())
       toast.removeToast(toastId)
       toast.success('¡Bienvenido!', 'Te uniste a la clase correctamente')
+      return true
     } else {
       toast.removeToast(toastId)
-      toast.error('Error', result.error ?? 'No se pudo unir a la clase')
+      const apiError = (result.error ?? '').toLowerCase()
+      if (apiError.includes('request') || apiError.includes('already') || apiError.includes('pertenece') || apiError.includes('inscrito')) {
+        toast.info('Información', 'Ya perteneces a esta clase')
+      } else {
+        toast.error('Error', result.error ?? 'No se pudo unir a la clase')
+      }
+      return false
     }
+  }
+
+  const handleJoinByCodigo = async (codigo: string, claseId: number) => {
+    await joinClass(codigo, claseId)
   }
 
   const handleJoinClase = async () => {
@@ -69,26 +96,18 @@ export default function Clases() {
       return
     }
 
-    setIsJoining(true)
-    const toastId = toast.loading('Uniéndote a la clase...', 'Por favor espera')
-    
-    const result = await clasesService.joinClaseFromApi(joinCodigo.trim())
-    setIsJoining(false)
-
-    if (result.ok) {
-      if (result.data?.id) {
-        const claseId = Number(result.data.id)
-        clasesService.addJoinedClassId(claseId)
-        setJoinedIds(clasesService.getJoinedClassIds())
+    const ok = await joinClass(joinCodigo.trim())
+    if (ok) {
+      if (availableClases.some((clase) => clase.codigo.toLowerCase() === joinCodigo.trim().toLowerCase())) {
+        const found = availableClases.find((clase) => clase.codigo.toLowerCase() === joinCodigo.trim().toLowerCase())
+        if (found) {
+          clasesService.addJoinedClassId(found.id)
+          setJoinedIds(clasesService.getJoinedClassIds())
+        }
       }
-      toast.removeToast(toastId)
-      toast.success('¡Bienvenido!', 'Te uniste a la clase correctamente')
       setJoinCodigo('')
       setShowJoinModal(false)
       loadClases()
-    } else {
-      toast.removeToast(toastId)
-      toast.error('Error', result.error ?? 'No se pudo unir a la clase')
     }
   }
 
@@ -117,7 +136,7 @@ export default function Clases() {
       )}
       {successMsg && (
         <div className="p-3 rounded-lg bg-primary/10 text-primary text-sm flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
+          <Check className="w-4 h-4" />
           {successMsg}
         </div>
       )}
@@ -148,11 +167,11 @@ export default function Clases() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => handleCopyCode(clase.codigo, clase.id)}
+                          onClick={() => void handleCopyCode(clase.codigo, clase.id)}
                         >
                           {copiedId === clase.id ? (
                             <>
-                              <CheckCircle className="w-4 h-4 text-primary" />
+                              <Check className="w-4 h-4 text-primary" />
                               Copiado
                             </>
                           ) : (
@@ -166,7 +185,12 @@ export default function Clases() {
                     </div>
                   </div>
                   <div className="sm:self-center">
-                    <Button variant="outline" onClick={() => handleJoinByCodigo(clase.codigo)} disabled={isJoining}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleJoinByCodigo(clase.codigo, clase.id)}
+                      disabled={isJoining}
+                    >
                       Unirse
                     </Button>
                   </div>
@@ -187,6 +211,27 @@ export default function Clases() {
               <Plus className="w-4 h-4" />
               Unirme a una clase
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {joinedClases.length > 0 && (
+        <Card variant="bordered" className="border-primary/40">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Check className="w-5 h-5 text-primary" />
+              Ya estás unido a estas clases
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {joinedClases.map((clase) => (
+                <span
+                  key={clase.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm text-primary"
+                >
+                  {clase.nombre}
+                </span>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
